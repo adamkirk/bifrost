@@ -2,7 +2,8 @@
 DC=docker compose -f ./docker-compose.yml -p bifrost
 
 .PHONY: npm \
-	up down restart dc build
+	up down restart dc build \
+	setup-hooks
 
 npm:
 	@[ $$(node -v | tr -d v | cut -d. -f1) -ge 25 ] || { echo "Error: node $$(node -v) < required v25"; exit 1; }
@@ -22,3 +23,6 @@ build:
 
 dc:
 	@echo "$(DC)"
+
+setup-hooks:
+	git config core.hooksPath .githooks
