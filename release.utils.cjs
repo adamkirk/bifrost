@@ -15,23 +15,34 @@ function buildReleaseRules(scope) {
 }
 
 function buildReleaseNotesConfig(scope) {
+  const types = [
+    { type: 'feat',     section: 'Features' },
+    { type: 'fix',      section: 'Bug Fixes' },
+    { type: 'perf',     section: 'Performance' },
+    { type: 'revert',   section: 'Reverts' },
+    { type: 'build',    section: 'Build' },
+    { type: 'chore',    section: 'Chores' },
+    { type: 'refactor', section: 'Refactors' },
+    { type: 'test',     section: 'Tests' },
+  ];
+
+  const typeToSection = Object.fromEntries(types.map(t => [t.type, t.section]));
+
   return {
     preset: 'conventionalcommits',
-    presetConfig: {
-      types: [
-        { type: 'feat',     section: 'Features' },
-        { type: 'fix',      section: 'Bug Fixes' },
-        { type: 'perf',     section: 'Performance' },
-        { type: 'revert',   section: 'Reverts' },
-        { type: 'build',    section: 'Build' },
-        { type: 'chore',    section: 'Chores' },
-        { type: 'refactor', section: 'Refactors' },
-        { type: 'test',     section: 'Tests' },
-      ],
-    },
+    presetConfig: { types },
     writerOpts: {
       transform: (commit) => {
         if (commit.scope !== scope) return false;
+
+        if (typeToSection[commit.type]) {
+          commit.type = typeToSection[commit.type];
+        }
+
+        if (commit.hash) {
+          commit.shortHash = commit.hash.substring(0, 7);
+        }
+
         return commit;
       },
     },
