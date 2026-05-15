@@ -7,6 +7,10 @@ function buildReleaseRules(scope) {
     { type: 'fix', scope: scope, release: 'patch' },
     { type: 'perf', scope: scope, release: 'patch' },
     { type: 'revert', scope: scope, release: 'patch' },
+    { type: 'build', scope: scope, release: 'patch' },
+    { type: 'chore', scope: scope, release: 'patch' },
+    { type: 'refactor', scope: scope, release: 'patch' },
+    { type: 'test', scope: scope, release: 'patch' },
   ];
 }
 
