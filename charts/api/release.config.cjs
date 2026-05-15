@@ -1,4 +1,4 @@
-const { buildReleaseRules } = require('../../release.utils.cjs');
+const { buildReleaseRules, buildReleaseNotesConfig } = require('../../release.utils.cjs');
 
 module.exports = {
   branches: ['main'],
@@ -8,9 +8,7 @@ module.exports = {
       preset: 'conventionalcommits',
       releaseRules: buildReleaseRules('chart-api'),
     }],
-    ['@semantic-release/release-notes-generator', {
-      preset: 'conventionalcommits',
-    }],
+    ['@semantic-release/release-notes-generator', buildReleaseNotesConfig('chart-api')],
     ['@semantic-release/github', {
       successComment: false,
       labels: false,
