@@ -33,7 +33,7 @@ while IFS= read -r commit; do
   if [ "$scope" = "repo" ]; then
     while IFS= read -r file; do
       for dir in "${COMPONENT_DIRS[@]}"; do
-        if [[ "$file" == "$dir"* ]] && [[ "$(basename "$file")" != "release.config.cjs" ]]; then
+        if [[ "$file" == "$dir"* ]] && [[ "$(basename "$file")" != "release.config.cjs" ]] && [[ "$file" != *"/.githook/"* ]]; then
           echo "ERROR: Commit $commit (scope: repo) touches component file: $file"
           FAILED=1
         fi
