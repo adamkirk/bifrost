@@ -1,5 +1,10 @@
 
 DC=docker compose -f ./docker-compose.yml -p bifrost
+TTY_FLAGS=-it
+
+ifeq ($(NO_TTY),1)
+TTY_FLAGS=-T
+endif
 
 .PHONY: npm \
 	up down restart dc build \
@@ -28,7 +33,10 @@ setup-hooks:
 	git config core.hooksPath .githooks
 
 exec-%:
-	$(DC) exec -it $* bash
+	@$(DC) exec $(TTY_FLAGS) $* bash
 
 tail-%:
-	$(DC) logs -f $*
+	@$(DC) logs -f $*
+
+hook-api-fmtcheck:
+	$(DC) exec $(TTY_FLAGS) api ./scripts/fmt_check.sh
