@@ -26,3 +26,9 @@ dc:
 
 setup-hooks:
 	git config core.hooksPath .githooks
+
+exec-%:
+	$(DC) exec -it $* bash
+
+tail-%:
+	$(DC) logs -f $*
