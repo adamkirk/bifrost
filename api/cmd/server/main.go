@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"reflect"
 	"strings"
@@ -17,6 +18,28 @@ var (
 	commit  = "none"
 	date    = "unknown"
 )
+
+var logger = slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{
+	Level: slog.LevelError,
+}))
+
+func buildLogger(cfg *config.Config) (*slog.Logger, error) {
+	var level slog.Level
+	if err := level.UnmarshalText([]byte(cfg.Logging.Level)); err != nil {
+		return nil, fmt.Errorf("invalid log level %q: %w", cfg.Logging.Level, err)
+	}
+
+	opts := &slog.HandlerOptions{Level: level}
+
+	switch cfg.Logging.Format {
+	case "json":
+		return slog.New(slog.NewJSONHandler(os.Stderr, opts)), nil
+	case "text":
+		return slog.New(slog.NewTextHandler(os.Stderr, opts)), nil
+	default:
+		return nil, fmt.Errorf("invalid log format %q: expected json or text", cfg.Logging.Format)
+	}
+}
 
 type runEHandlerFunc func(cmd *cobra.Command, args []string) error
 type runEHandlerFuncWithConfig func(cmd *cobra.Command, args []string, cfg *config.Config) error
@@ -65,15 +88,22 @@ func withConfig(f runEHandlerFuncWithConfig) runEHandlerFunc {
 		v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 		bindEnvs(v, "", reflect.TypeFor[config.Config]())
 
-		defaults := config.Default()
-		v.SetDefault("server.port", defaults.Server.Port)
+		_ = v.BindPFlag("logging.level", cmd.Root().PersistentFlags().Lookup("log-level"))
+		_ = v.BindPFlag("logging.format", cmd.Root().PersistentFlags().Lookup("log-format"))
 
 		if err := v.ReadInConfig(); err != nil && !errors.Is(err, os.ErrNotExist) {
 			return err
 		}
 
-		cfg := &config.Config{}
+		cfg := config.Default()
 		if err := v.Unmarshal(cfg); err != nil {
+			return err
+		}
+
+		var err error
+		logger, err = buildLogger(cfg)
+
+		if err != nil {
 			return err
 		}
 
@@ -96,6 +126,9 @@ func handleGroup(cmd *cobra.Command, _ []string) error {
 }
 
 func init() {
+	rootCmd.PersistentFlags().String("log-level", "info", "Log level (debug, info, warn, error).")
+	rootCmd.PersistentFlags().String("log-format", "json", "Log format (json, text).")
+
 	versionCmd.Flags().Bool("short", false, "Show only the version, excluding commit and date information.")
 	rootCmd.AddCommand(versionCmd)
 

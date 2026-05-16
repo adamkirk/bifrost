@@ -1,11 +1,18 @@
 package config
 
+type LoggingConfig struct {
+	Level  string
+	Format string
+}
+
 type ServerConfig struct {
-	Port int `mapstructure:"port"`
+	Port              int
+	AccessLogsEnabled bool
 }
 
 type Config struct {
-	Server ServerConfig `mapstructure:"server"`
+	Server  ServerConfig
+	Logging LoggingConfig
 }
 
 func (c *Config) GetServerPort() int {
@@ -15,7 +22,12 @@ func (c *Config) GetServerPort() int {
 func Default() *Config {
 	return &Config{
 		Server: ServerConfig{
-			Port: 8080,
+			Port:              8080,
+			AccessLogsEnabled: true,
+		},
+		Logging: LoggingConfig{
+			Level:  "info",
+			Format: "json",
 		},
 	}
 }

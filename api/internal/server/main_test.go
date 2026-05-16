@@ -40,7 +40,7 @@ func waitForServer(url string, timeout time.Duration) error {
 func TestHealthcheck(t *testing.T) {
 	port := freePort(t)
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	s := server.New(port, logger)
+	s := server.New(port, logger, logger)
 	go s.Start() //nolint:errcheck
 
 	base := fmt.Sprintf("http://localhost:%d", port)
