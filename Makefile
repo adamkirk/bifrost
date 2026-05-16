@@ -8,7 +8,9 @@ endif
 
 .PHONY: npm \
 	up down restart dc build \
-	setup-hooks
+	setup-hooks \
+	tail-% exec-% \
+	api-tidy hook-api-fmtcheck
 
 npm:
 	@[ $$(node -v | tr -d v | cut -d. -f1) -ge 25 ] || { echo "Error: node $$(node -v) < required v25"; exit 1; }
@@ -37,6 +39,12 @@ exec-%:
 
 tail-%:
 	@$(DC) logs -f $*
+
+api-tidy:
+	@$(DC) exec $(TTY_FLAGS) api go mod tidy
+
+api-test:
+	@$(DC) exec $(TTY_FLAGS) api ./scripts/test.sh ./...
 
 hook-api-fmtcheck:
 	$(DC) exec $(TTY_FLAGS) api ./scripts/fmt_check.sh
