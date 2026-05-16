@@ -3,7 +3,9 @@ const ALL_SCOPES = ['api', 'ui', 'cli', 'chart-api', 'chart-ui', 'repo'];
 function buildReleaseRules(scope) {
   return [
     ...ALL_SCOPES.filter(s => s !== scope).map(s => ({ scope: s, release: false })),
-    { type: 'feat', scope: scope, release: 'minor' },
+    // Change these later, patch for everythng right now while it's very early 
+    // build.
+    { type: 'feat', scope: scope, release: 'patch' },
     { type: 'fix', scope: scope, release: 'patch' },
     { type: 'perf', scope: scope, release: 'patch' },
     { type: 'revert', scope: scope, release: 'patch' },
