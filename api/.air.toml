@@ -13,11 +13,11 @@ tmp_dir = ".local/air"
   follow_symlink = false
   full_bin = ""
   include_dir = ["cmd", "internal", "pkg"]
-  include_ext = ["go", "tpl", "tmpl", "html", "yaml", "mod", "toml"]
+  include_ext = ["go", "tpl", "tmpl", "html", "yaml", "yml", "mod", "toml"]
   # This seems to be bugged annoyingly
   # https://github.com/air-verse/air/issues/496
   # Got it working by including these extensions in the above array as well
-  include_file = ["config.yaml", "go.mod", ".air.toml"]
+  include_file = ["bifrost.server.yml", "go.mod", ".air.toml"]
   kill_delay = "0s"
   log = "build-errors.log"
   poll = false
