@@ -37,21 +37,6 @@ func (q *Queries) GetEnvironmentByName(ctx context.Context, name string) (Enviro
 	return i, err
 }
 
-const insertEnvironment = `-- name: InsertEnvironment :exec
-INSERT INTO environments (id, name)
-VALUES ($1, $2)
-`
-
-type InsertEnvironmentParams struct {
-	ID   pgtype.UUID
-	Name string
-}
-
-func (q *Queries) InsertEnvironment(ctx context.Context, arg InsertEnvironmentParams) error {
-	_, err := q.db.Exec(ctx, insertEnvironment, arg.ID, arg.Name)
-	return err
-}
-
 const listEnvironments = `-- name: ListEnvironments :many
 SELECT id, name
 FROM environments

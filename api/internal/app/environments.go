@@ -66,7 +66,7 @@ func (h *EnvironmentsHandler) Create(dto CreateEnvironmentDTO) (*common.Environm
 		Name: dto.Name,
 	}
 
-	return env, h.environmentsRepository.Create(env)
+	return env, h.environmentsRepository.Save(env)
 }
 
 type GetEnvironmentDTO struct {

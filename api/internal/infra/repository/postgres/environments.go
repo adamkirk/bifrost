@@ -16,24 +16,6 @@ type EnvironmentsRepository struct {
 	l    *slog.Logger
 }
 
-func (r *EnvironmentsRepository) Create(env *common.Environment) error {
-	conn := db.New(r.pool)
-
-	err := conn.InsertEnvironment(context.Background(), db.InsertEnvironmentParams{
-		Name: env.Name,
-		ID: pgtype.UUID{
-			Bytes: [16]byte(env.ID[:]),
-			Valid: true,
-		},
-	})
-
-	if err != nil {
-		r.l.Error("failed to insert environment", "error", err)
-	}
-
-	return err
-}
-
 func (r *EnvironmentsRepository) ByName(name string) (*common.Environment, error) {
 	conn := db.New(r.pool)
 
