@@ -11,8 +11,19 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const countEnvironments = `-- name: CountEnvironments :one
+SELECT COUNT(*) FROM environments
+`
+
+func (q *Queries) CountEnvironments(ctx context.Context) (int64, error) {
+	row := q.db.QueryRow(ctx, countEnvironments)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const getEnvironmentByName = `-- name: GetEnvironmentByName :one
-SELECT 
+SELECT
     id, name
 FROM environments
 WHERE
@@ -39,4 +50,37 @@ type InsertEnvironmentParams struct {
 func (q *Queries) InsertEnvironment(ctx context.Context, arg InsertEnvironmentParams) error {
 	_, err := q.db.Exec(ctx, insertEnvironment, arg.ID, arg.Name)
 	return err
+}
+
+const listEnvironments = `-- name: ListEnvironments :many
+SELECT id, name
+FROM environments
+ORDER BY name ASC
+LIMIT $1
+OFFSET $2
+`
+
+type ListEnvironmentsParams struct {
+	Limit  int32
+	Offset int32
+}
+
+func (q *Queries) ListEnvironments(ctx context.Context, arg ListEnvironmentsParams) ([]Environment, error) {
+	rows, err := q.db.Query(ctx, listEnvironments, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Environment
+	for rows.Next() {
+		var i Environment
+		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

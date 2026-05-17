@@ -54,6 +54,42 @@ func (r *EnvironmentsRepository) ByName(name string) (*common.Environment, error
 	}, nil
 }
 
+func (r *EnvironmentsRepository) Count() (int, error) {
+	conn := db.New(r.pool)
+
+	count, err := conn.CountEnvironments(context.Background())
+	if err != nil {
+		r.l.Error("failed to count environments", "error", err)
+		return 0, err
+	}
+
+	return int(count), nil
+}
+
+func (r *EnvironmentsRepository) List(limit, offset int) ([]*common.Environment, error) {
+	conn := db.New(r.pool)
+
+	rows, err := conn.ListEnvironments(context.Background(), db.ListEnvironmentsParams{
+		Limit:  int32(limit),
+		Offset: int32(offset),
+	})
+
+	if err != nil {
+		r.l.Error("failed to list environments", "error", err)
+		return nil, err
+	}
+
+	envs := make([]*common.Environment, len(rows))
+	for i, row := range rows {
+		envs[i] = &common.Environment{
+			ID:   row.ID.Bytes,
+			Name: row.Name,
+		}
+	}
+
+	return envs, nil
+}
+
 func NewEnvironmentsRepository(l *slog.Logger, pool *pgxpool.Pool) *EnvironmentsRepository {
 	return &EnvironmentsRepository{
 		pool: pool,

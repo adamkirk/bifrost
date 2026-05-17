@@ -101,6 +101,77 @@ func (h *EnvironmentsHandler) Get(dto GetEnvironmentDTO) (*common.Environment, e
 	return h.environmentsRepository.ByName(dto.Name)
 }
 
+type ListEnvironmentsDTO struct {
+	Page    int
+	PerPage int
+}
+
+func (dto ListEnvironmentsDTO) Validate(totalPages int) error {
+	fldErrors := []common.FieldError{}
+
+	if dto.PerPage < 1 || dto.PerPage > 100 {
+		fldErrors = append(fldErrors, common.FieldError{
+			Key:   "PerPage",
+			Error: "must be between 1 and 100",
+			Value: dto.PerPage,
+		})
+	}
+
+	// Page 1 is always valid even when there are no records.
+	if dto.Page > 1 && dto.Page > totalPages {
+		fldErrors = append(fldErrors, common.FieldError{
+			Key:   "Page",
+			Error: "page is out of bounds",
+			Value: dto.Page,
+		})
+	}
+
+	if len(fldErrors) > 0 {
+		return common.ValidationError{FieldErrors: fldErrors}
+	}
+
+	return nil
+}
+
+type ListEnvironmentsResult struct {
+	Environments []*common.Environment
+	Total        int
+	TotalPages   int
+	Page         int
+	PerPage      int
+}
+
+func (h *EnvironmentsHandler) List(dto ListEnvironmentsDTO) (*ListEnvironmentsResult, error) {
+	total, err := h.environmentsRepository.Count()
+	if err != nil {
+		return nil, err
+	}
+
+	totalPages := total / dto.PerPage
+
+	if total%dto.PerPage != 0 {
+		totalPages++
+	}
+
+	if err := dto.Validate(totalPages); err != nil {
+		return nil, err
+	}
+
+	offset := (dto.Page - 1) * dto.PerPage
+	envs, err := h.environmentsRepository.List(dto.PerPage, offset)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ListEnvironmentsResult{
+		Environments: envs,
+		Total:        total,
+		TotalPages:   totalPages,
+		Page:         dto.Page,
+		PerPage:      dto.PerPage,
+	}, nil
+}
+
 func NewEnvironmentsHandler(l *slog.Logger, environmentsRepository environmentsRepository) *EnvironmentsHandler {
 	return &EnvironmentsHandler{
 		l:                      l,
