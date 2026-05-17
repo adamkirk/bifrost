@@ -24,6 +24,15 @@ type V1BetaCreateEnvironmentRequest struct {
 	Body V1BetaCreateEnvironmentRequestBody
 }
 
+func (req *V1BetaCreateEnvironmentRequest) MapErrorKey(targetField string) string {
+	switch targetField {
+	case "Name":
+		return "name"
+	default:
+		return targetField
+	}
+}
+
 type V1BetaCreateEnvironmentResponseBody struct {
 	V1BetaCreateEnvironmentRequestBody
 }

@@ -6,6 +6,7 @@ import (
 
 	"github.com/adamkirk/bifrost/api/internal/common"
 	"github.com/adamkirk/bifrost/api/internal/infra/repository/postgres/db"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -31,6 +32,26 @@ func (r *EnvironmentsRepository) Create(env *common.Environment) error {
 	}
 
 	return err
+}
+
+func (r *EnvironmentsRepository) ByName(name string) (*common.Environment, error) {
+	conn := db.New(r.pool)
+
+	env, err := conn.GetEnvironmentByName(context.Background(), name)
+
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, nil
+		}
+
+		r.l.Error("failed to get environment", "error", err)
+		return nil, err
+	}
+
+	return &common.Environment{
+		ID:   env.ID.Bytes,
+		Name: env.Name,
+	}, nil
 }
 
 func NewEnvironmentsRepository(l *slog.Logger, pool *pgxpool.Pool) *EnvironmentsRepository {

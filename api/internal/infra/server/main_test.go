@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/adamkirk/bifrost/api/internal/server"
+	"github.com/adamkirk/bifrost/api/internal/infra/server"
 	"github.com/danielgtaylor/huma/v2"
 )
 

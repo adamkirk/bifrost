@@ -2,6 +2,9 @@ package server
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"net/http"
 
 	"github.com/adamkirk/bifrost/api/internal/common"
 	"github.com/danielgtaylor/huma/v2"
@@ -15,9 +18,13 @@ func ErrorHandler[Req any, Resp any](handler func(context.Context, *Req) (*Resp,
 			return resp, nil
 		}
 
+		if conflictErr, ok := errors.AsType[common.ErrConflict](err); ok {
+			return resp, huma.Error409Conflict(conflictErr.Error())
+		}
+
 		switch e := err.(type) {
-		// case validation.Error:
-		// 	return resp, buildValidationError(e)
+		case common.ValidationError:
+			return resp, buildValidationError(req, e)
 
 		case common.ErrUnauthorised:
 			return resp, huma.Error401Unauthorized(e.Message)
@@ -28,4 +35,42 @@ func ErrorHandler[Req any, Resp any](handler func(context.Context, *Req) (*Resp,
 			return resp, err
 		}
 	}
+}
+
+type MapsErrorKeys interface {
+	MapErrorKey(string) string
+}
+
+type errorKeyMapper func(string) string
+
+func defaultKeyMapper(target string) string {
+	// Do nothing really...
+	return target
+}
+
+func buildValidationError(req any, err common.ValidationError) *huma.ErrorModel {
+	errModel := &huma.ErrorModel{
+		Title:  "Invalid data",
+		Status: http.StatusUnprocessableEntity,
+	}
+
+	var fieldMapper errorKeyMapper = defaultKeyMapper
+
+	if mapper, ok := req.(MapsErrorKeys); ok {
+		fieldMapper = mapper.MapErrorKey
+	}
+
+	for _, fldError := range err.FieldErrors {
+		for _, v := range fldError.Errors {
+			errModel.Add(&huma.ErrorDetail{
+				// TODO: Need to documentthis properly in the API
+				// Taking an arguably weird tactic of just returning a custom format
+				// for message allowing the useer to extract the violation type,
+				// and provide their own messages.
+				Message:  fmt.Sprintf("[%s]%s", string(v.Code()), v.Message()),
+				Location: fieldMapper(fldError.Key),
+			})
+		}
+	}
+	return errModel
 }

@@ -11,6 +11,21 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const getEnvironmentByName = `-- name: GetEnvironmentByName :one
+SELECT 
+    id, name
+FROM environments
+WHERE
+    name = $1
+`
+
+func (q *Queries) GetEnvironmentByName(ctx context.Context, name string) (Environment, error) {
+	row := q.db.QueryRow(ctx, getEnvironmentByName, name)
+	var i Environment
+	err := row.Scan(&i.ID, &i.Name)
+	return i, err
+}
+
 const insertEnvironment = `-- name: InsertEnvironment :exec
 INSERT INTO environments (id, name)
 VALUES ($1, $2)
