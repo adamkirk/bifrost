@@ -30,7 +30,7 @@ type Server struct {
 }
 
 type Controller interface {
-	RegisterRoutes(g huma.API)
+	RegisterRoutes(v ApiVersion, g huma.API)
 }
 
 type ApiVersionGroup struct {
@@ -234,15 +234,17 @@ func New(port int, logger *slog.Logger, opts ...ServerOpt) *Server {
 	setupEchoMiddlewares(s.echo, logger, s.accessLogger)
 
 	for _, vg := range s.apiVersionGroups {
-		g := s.echo.Group(fmt.Sprintf("/api/%s", string(vg.Version)))
+		prefix := fmt.Sprintf("/api/%s", string(vg.Version))
+		g := s.echo.Group(prefix)
 		apiCfg := huma.DefaultConfig("Bifrost API", string(vg.Version))
+		apiCfg.OpenAPI.Servers = []*huma.Server{{URL: prefix}}
 		hg := humaecho.NewWithGroup(s.echo, g, apiCfg)
 
 		setupHumaMiddlewares(hg)
 		setupHumaHooks(hg)
 
 		for _, c := range vg.Controllers {
-			c.RegisterRoutes(hg)
+			c.RegisterRoutes(vg.Version, hg)
 		}
 	}
 

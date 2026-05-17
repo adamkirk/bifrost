@@ -14,11 +14,13 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 )
 
+var BlahVersion server.ApiVersion = "blah"
+
 type DummyController struct{}
 
-func (c *DummyController) RegisterRoutes(api huma.API) {
+func (c *DummyController) RegisterRoutes(v server.ApiVersion, api huma.API) {
 	huma.Register(api, huma.Operation{
-		OperationID:   "dummy.healthz",
+		OperationID:   fmt.Sprintf("%s.dummy.healthz", string(v)),
 		Method:        http.MethodGet,
 		Path:          "/healthz",
 		Summary:       "Check if the app is started up",
@@ -76,7 +78,7 @@ func TestAPI(t *testing.T) {
 			},
 		}),
 		server.WithApiVersionGroup(server.ApiVersionGroup{
-			Version: "blah",
+			Version: BlahVersion,
 			Controllers: []server.Controller{
 				&DummyController{},
 			},
@@ -99,7 +101,7 @@ func TestAPI(t *testing.T) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusNoContent {
-		t.Errorf("expected status 200, got %d", resp.StatusCode)
+		t.Errorf("expected status 204, got %d", resp.StatusCode)
 	}
 
 	resp, err = http.Get(base + "/api/blah/healthz") //nolint:noctx
@@ -111,6 +113,6 @@ func TestAPI(t *testing.T) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusNoContent {
-		t.Errorf("expected status 200, got %d", resp.StatusCode)
+		t.Errorf("expected status 204, got %d", resp.StatusCode)
 	}
 }

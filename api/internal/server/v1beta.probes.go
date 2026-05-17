@@ -12,9 +12,9 @@ type V1BetaProbesStartupRequest struct{}
 
 type V1BetaProbesController struct{}
 
-func (c *V1BetaProbesController) RegisterRoutes(api huma.API) {
+func (c *V1BetaProbesController) RegisterRoutes(v ApiVersion, api huma.API) {
 	huma.Register(api, huma.Operation{
-		OperationID:   fmt.Sprintf("%s.probes.startup", ApiVersionV1Beta),
+		OperationID:   fmt.Sprintf("%s.probes.startup", string(v)),
 		Method:        http.MethodGet,
 		Path:          "/_/probes/startup",
 		Summary:       "Check if the app is started up",
