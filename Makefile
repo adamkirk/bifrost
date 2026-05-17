@@ -1,5 +1,5 @@
 
-DC=docker compose -f ./docker-compose.yml -p bifrost
+DC=docker compose --env-file ./.dockerenv -f ./docker-compose.yml -p bifrost
 TTY_FLAGS=-it
 
 ifeq ($(NO_TTY),1)
@@ -7,17 +7,21 @@ TTY_FLAGS=-T
 endif
 
 .PHONY: npm \
+	prepare-env \
 	up down restart dc build \
 	setup-hooks \
 	tail-% exec-% \
 	api-tidy hook-api-fmtcheck
+
+prepare-env:
+	@[ -f .dockerenv ] || cp .dockerenv.example .dockerenv
 
 npm:
 	@[ $$(node -v | tr -d v | cut -d. -f1) -ge 25 ] || { echo "Error: node $$(node -v) < required v25"; exit 1; }
 	@[ $$(npm -v | cut -d. -f1) -ge 11 ] || { echo "Error: npm $$(npm -v) < required v11"; exit 1; }
 	npm install
 
-up:
+up: prepare-env
 	$(DC) up -d
 
 down:
@@ -45,6 +49,12 @@ api-tidy:
 
 api-test:
 	@$(DC) exec $(TTY_FLAGS) api ./scripts/test.sh ./...
+
+api-db-migrate:
+	@$(DC) run $(TTY_FLAGS) migrate up
+
+api-db-wipe:
+	@$(DC) run $(TTY_FLAGS) migrate drop
 
 hook-api-fmtcheck:
 	$(DC) exec $(TTY_FLAGS) api ./scripts/fmt_check.sh

@@ -13,6 +13,49 @@ services:
       APP_CMD: "serve"
       AIR_DEBUG: ${AIR_DEBUG:-false}
 
+  postgres:
+    image: postgres:18
+    ports:
+      # Allow users to connect from their host for development
+      - "${BIFROST_POSTGRES_HOST_PORT}:${BIFROST_POSTGRES_PORT}"
+    environment:
+      PGDATA: /home/postgres/pgdata/data
+      POSTGRES_PASSWORD: ${BIFROST_POSTGRES_ROOT_PASSWORD}
+      POSTGRES_USER: ${BIFROST_POSTGRES_ROOT_USER}
+      POSTGRES_DB: ${BIFROST_POSTGRES_DB}
+      BIFROST_POSTGRES_SCHEMA: ${BIFROST_POSTGRES_SCHEMA}
+      BIFROST_POSTGRES_APP_USER: ${BIFROST_POSTGRES_APP_USER}
+      BIFROST_POSTGRES_APP_PASSWORD: ${BIFROST_POSTGRES_APP_PASSWORD}
+      BIFROST_POSTGRES_MIGRATOR_USER: ${BIFROST_POSTGRES_MIGRATOR_USER}
+      BIFROST_POSTGRES_MIGRATOR_PASSWORD: ${BIFROST_POSTGRES_MIGRATOR_PASSWORD}
+    volumes:
+      - postgres:/home/postgres/pgdata/data
+      - ${BIFROST_POSTGRES_INIT_DIR}/1000_setup.sh:/docker-entrypoint-initdb.d/1000_setup.sh
+
+  pgadmin:
+    image: dpage/pgadmin4:8.12
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${BIFROST_PGADMIN_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${BIFROST_PGADMIN_PASSWORD}
+      # Disable login and security precautions; useful in dev
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: 'False'
+      PGADMIN_CONFIG_CHECK_EMAIL_DELIVERABILITY: 'False'
+      PGADMIN_CONFIG_ALLOW_SPECIAL_EMAIL_DOMAINS: "['test']"
+    volumes:
+      - "${BIFROST_PGADMIN_SERVERS_FILEPATH}:/pgadmin4/servers.json"
+
+  migrate:
+    profiles:
+      - manual
+    image: migrate/migrate:4
+    environment:
+      POSTGRES_URL: postgres://${BIFROST_POSTGRES_MIGRATOR_USER}:${BIFROST_POSTGRES_MIGRATOR_PASSWORD}@postgres:${BIFROST_POSTGRES_PORT}/${BIFROST_POSTGRES_DB}?search_path=${BIFROST_POSTGRES_SCHEMA}&sslmode=disable
+    volumes:
+      - ${BIFROST_MIGRATIONS_DIR}:/migrations
+      - ${BIFROST_DB_MIGRATE_SCRIPT}:/scripts/migrate.sh
+    entrypoint: /scripts/migrate.sh
+
   ui:
     build:
       context: ./ui
@@ -23,3 +66,6 @@ services:
     volumes:
       - ./ui:/app
     command: npm run dev
+
+volumes:
+  postgres:

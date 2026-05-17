@@ -1,3 +1,5 @@
 node_modules/
 nextversion
 released
+
+.dockerenv
