@@ -58,10 +58,10 @@ api-test:
 	@$(DC) exec $(TTY_FLAGS) api ./scripts/test.sh ./...
 
 api-db-migrate:
-	@$(DC) run $(TTY_FLAGS) migrate up
+	@$(DC) run --rm $(TTY_FLAGS) migrate up
 
 api-db-wipe:
-	@$(DC) run $(TTY_FLAGS) migrate drop
+	@$(DC) run --rm $(TTY_FLAGS) migrate drop
 
 api-sqlc-gen:
 	$(DC) exec $(TTY_FLAGS) api sqlc generate
