@@ -90,6 +90,24 @@ func (r *EnvironmentsRepository) List(limit, offset int) ([]*common.Environment,
 	return envs, nil
 }
 
+func (r *EnvironmentsRepository) Save(env *common.Environment) error {
+	conn := db.New(r.pool)
+
+	_, err := conn.UpsertEnvironment(context.Background(), db.UpsertEnvironmentParams{
+		ID: pgtype.UUID{
+			Bytes: [16]byte(env.ID[:]),
+			Valid: true,
+		},
+		Name: env.Name,
+	})
+
+	if err != nil {
+		r.l.Error("failed to save environment", "error", err)
+	}
+
+	return err
+}
+
 func NewEnvironmentsRepository(l *slog.Logger, pool *pgxpool.Pool) *EnvironmentsRepository {
 	return &EnvironmentsRepository{
 		pool: pool,

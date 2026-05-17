@@ -84,3 +84,22 @@ func (q *Queries) ListEnvironments(ctx context.Context, arg ListEnvironmentsPara
 	}
 	return items, nil
 }
+
+const upsertEnvironment = `-- name: UpsertEnvironment :one
+INSERT INTO environments (id, name)
+VALUES ($1, $2)
+ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name
+RETURNING id, name
+`
+
+type UpsertEnvironmentParams struct {
+	ID   pgtype.UUID
+	Name string
+}
+
+func (q *Queries) UpsertEnvironment(ctx context.Context, arg UpsertEnvironmentParams) (Environment, error) {
+	row := q.db.QueryRow(ctx, upsertEnvironment, arg.ID, arg.Name)
+	var i Environment
+	err := row.Scan(&i.ID, &i.Name)
+	return i, err
+}

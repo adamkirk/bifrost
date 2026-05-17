@@ -9,4 +9,5 @@ type environmentsHandler interface {
 	Create(dto app.CreateEnvironmentDTO) (*common.Environment, error)
 	Get(dto app.GetEnvironmentDTO) (*common.Environment, error)
 	List(dto app.ListEnvironmentsDTO) (*app.ListEnvironmentsResult, error)
+	Update(dto app.UpdateEnvironmentDTO) (*common.Environment, error)
 }

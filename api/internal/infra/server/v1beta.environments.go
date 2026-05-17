@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -43,6 +44,17 @@ func (c *V1BetaEnvironmentsController) RegisterRoutes(v ApiVersion, api huma.API
 		// 	OptDisableDefaultAuthentication: false,
 		// },
 	}, ErrorHandler(c.Get, http.MethodGet))
+
+	huma.Register(api, huma.Operation{
+		OperationID:   fmt.Sprintf("%s.environments.update", string(v)),
+		Method:        http.MethodPatch,
+		Path:          "/environments/{name}",
+		Summary:       "Update an environment",
+		DefaultStatus: http.StatusOK,
+		Tags: []string{
+			"Environments",
+		},
+	}, ErrorHandler(c.Update, http.MethodPatch))
 
 	huma.Register(api, huma.Operation{
 		OperationID:   fmt.Sprintf("%s.environments.list", string(v)),
@@ -174,6 +186,52 @@ func (c *V1BetaEnvironmentsController) Create(ctx context.Context, req *V1BetaCr
 
 	return &V1BetaEnvironmentResponse{
 		Status: http.StatusCreated,
+		Body: V1BetaEnvironmentResponseBody{
+			Data: V1BetaEnvironment{
+				ID:   env.ID.String(),
+				Name: env.Name,
+			},
+		},
+	}, nil
+}
+
+type V1BetaUpdateEnvironmentRequestBody struct {
+	Name string `json:"name" minLength:"1" pattern:"^[a-zA-Z0-9-]+$" doc:"New name for the environment. Must contain only alphanumeric characters and hyphens."`
+}
+
+type V1BetaUpdateEnvironmentRequest struct {
+	Name string `path:"name" minLength:"1" pattern:"^[a-zA-Z0-9-]+$" doc:"Current name of the environment."`
+	Body V1BetaUpdateEnvironmentRequestBody
+}
+
+func (req *V1BetaUpdateEnvironmentRequest) MapErrorKey(targetField string) string {
+	switch targetField {
+	case "CurrentName":
+		return "path.name"
+	case "Name":
+		return "body.name"
+	default:
+		return targetField
+	}
+}
+
+func (c *V1BetaEnvironmentsController) Update(ctx context.Context, req *V1BetaUpdateEnvironmentRequest) (*V1BetaEnvironmentResponse, error) {
+	env, err := c.environmentsHandler.Update(app.UpdateEnvironmentDTO{
+		CurrentName: req.Name,
+		Name:        req.Body.Name,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	if env == nil {
+		// This shouldn't ever happen
+		return nil, errors.New("no environment came back from update")
+	}
+
+	return &V1BetaEnvironmentResponse{
+		Status: http.StatusOK,
 		Body: V1BetaEnvironmentResponseBody{
 			Data: V1BetaEnvironment{
 				ID:   env.ID.String(),

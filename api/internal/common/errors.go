@@ -14,6 +14,18 @@ func (err ErrUnauthorised) Error() string {
 	return "the current user is not authorized to perform this action"
 }
 
+type ErrNotFound struct {
+	Message string
+}
+
+func (err ErrNotFound) Error() string {
+	if err.Message != "" {
+		return err.Message
+	}
+
+	return "the requested data does not exist"
+}
+
 // ErrConflict is the base type for any unique-constraint violation.
 type ErrConflict struct {
 	Message string

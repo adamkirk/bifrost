@@ -101,6 +101,71 @@ func (h *EnvironmentsHandler) Get(dto GetEnvironmentDTO) (*common.Environment, e
 	return h.environmentsRepository.ByName(dto.Name)
 }
 
+type UpdateEnvironmentDTO struct {
+	CurrentName string
+	Name        string
+}
+
+func (dto UpdateEnvironmentDTO) Validate(repo environmentsRepository) error {
+	fldErrors := []common.FieldError{}
+
+	if !common.IsValidEnvironmentName(dto.Name) {
+		fldErrors = append(fldErrors, common.FieldError{
+			Key:   "Name",
+			Error: "must contain alphanumeric or hyphen characters only",
+			Value: dto.Name,
+		})
+	} else {
+		existing, err := repo.ByName(dto.Name)
+		if err != nil {
+			return err
+		}
+
+		if existing != nil {
+			msg := "an environment with this name already exists"
+
+			if existing.Name == dto.Name {
+				msg = "the names are the same"
+			}
+
+			fldErrors = append(fldErrors, common.FieldError{
+				Key:   "Name",
+				Error: msg,
+				Value: dto.Name,
+			})
+		}
+	}
+
+	if len(fldErrors) > 0 {
+		return common.ValidationError{FieldErrors: fldErrors}
+	}
+
+	return nil
+}
+
+func (h *EnvironmentsHandler) Update(dto UpdateEnvironmentDTO) (*common.Environment, error) {
+	env, err := h.environmentsRepository.ByName(dto.CurrentName)
+	if err != nil {
+		return nil, err
+	}
+
+	if env == nil {
+		return nil, common.ErrNotFound{}
+	}
+
+	if err := dto.Validate(h.environmentsRepository); err != nil {
+		return nil, err
+	}
+
+	env.Name = dto.Name
+
+	if err := h.environmentsRepository.Save(env); err != nil {
+		return nil, err
+	}
+
+	return env, nil
+}
+
 type ListEnvironmentsDTO struct {
 	Page    int
 	PerPage int

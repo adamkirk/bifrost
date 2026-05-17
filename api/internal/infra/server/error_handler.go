@@ -28,6 +28,9 @@ func ErrorHandler[Req any, Resp any](handler func(context.Context, *Req) (*Resp,
 		case common.ErrUnauthorised:
 			return resp, huma.Error401Unauthorized(e.Message)
 
+		case common.ErrNotFound:
+			return resp, huma.Error404NotFound(e.Message)
+
 		default:
 			// TODO: outside dev, return a generic errors message instead of the
 			// actual error as it appears in the response
