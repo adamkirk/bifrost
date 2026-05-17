@@ -12,7 +12,9 @@ endif
 	hosts-txeh setup-certs-mkcert \
 	setup-hooks \
 	tail-% exec-% \
-	api-tidy hook-api-fmtcheck
+	api-tidy api-test hook-api-fmtcheck api-fmt \
+	api-db-migrate api-db-migrate-down api-db-wipe api-db-hard-reset \
+	api-sqlc-gen api-export-river-migrations \
 
 prepare-env:
 	@[ -f .dockerenv ] || cp .dockerenv.example .dockerenv
@@ -54,17 +56,35 @@ tail-%:
 api-tidy:
 	@$(DC) exec $(TTY_FLAGS) api go mod tidy
 
+api-fmt:
+	$(DC) exec $(TTY_FLAGS) api go fmt ./...
+
 api-test:
 	@$(DC) exec $(TTY_FLAGS) api ./scripts/test.sh ./...
 
 api-db-migrate:
 	@$(DC) run --rm $(TTY_FLAGS) migrate up
 
+api-db-migrate-down:
+	@$(DC) run --rm $(TTY_FLAGS) migrate down 1
+
 api-db-wipe:
 	@$(DC) run --rm $(TTY_FLAGS) migrate drop
 
+api-db-hard-reset:
+	$(MAKE) down
+	docker volume rm -f bifrost_postgres
+	$(MAKE) up
+	# hack until i sort out an actual wait for postgres
+	sleep 5
+	$(MAKE) api-db-migrate
+
 api-sqlc-gen:
 	$(DC) exec $(TTY_FLAGS) api sqlc generate
+
+api-export-river-migrations:
+	$(DC) exec $(TTY_FLAGS) api river migrate-get --all --up > ./api/etc/postgres/migrations/0004_river.up.sql
+	$(DC) exec $(TTY_FLAGS) api river migrate-get --all --down > ./api/etc/postgres/migrations/0004_river.down.sql
 
 hook-api-fmtcheck:
 	$(DC) exec $(TTY_FLAGS) api ./scripts/fmt_check.sh
