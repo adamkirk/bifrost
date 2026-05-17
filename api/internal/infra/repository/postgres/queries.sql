@@ -28,6 +28,17 @@ RETURNING *;
 SELECT * FROM environment_components
 WHERE environment_id = $1 AND name = $2;
 
+-- name: CountEnvironmentComponents :one
+SELECT COUNT(*) FROM environment_components
+WHERE environment_id = $1;
+
+-- name: ListEnvironmentComponents :many
+SELECT * FROM environment_components
+WHERE environment_id = $1
+ORDER BY name ASC
+LIMIT $2
+OFFSET $3;
+
 -- name: UpsertEnvironmentComponent :one
 INSERT INTO environment_components (id, environment_id, name, chart_name, chart_version, chart_registry)
 VALUES ($1, $2, $3, $4, $5, $6)

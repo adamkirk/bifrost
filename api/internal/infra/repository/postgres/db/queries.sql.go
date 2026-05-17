@@ -11,6 +11,18 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const countEnvironmentComponents = `-- name: CountEnvironmentComponents :one
+SELECT COUNT(*) FROM environment_components
+WHERE environment_id = $1
+`
+
+func (q *Queries) CountEnvironmentComponents(ctx context.Context, environmentID pgtype.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, countEnvironmentComponents, environmentID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const countEnvironments = `-- name: CountEnvironments :one
 SELECT COUNT(*) FROM environments
 `
@@ -68,6 +80,47 @@ func (q *Queries) GetEnvironmentComponentByEnvironmentAndName(ctx context.Contex
 		&i.ChartRegistry,
 	)
 	return i, err
+}
+
+const listEnvironmentComponents = `-- name: ListEnvironmentComponents :many
+SELECT id, environment_id, name, chart_name, chart_version, chart_registry FROM environment_components
+WHERE environment_id = $1
+ORDER BY name ASC
+LIMIT $2
+OFFSET $3
+`
+
+type ListEnvironmentComponentsParams struct {
+	EnvironmentID pgtype.UUID
+	Limit         int32
+	Offset        int32
+}
+
+func (q *Queries) ListEnvironmentComponents(ctx context.Context, arg ListEnvironmentComponentsParams) ([]EnvironmentComponent, error) {
+	rows, err := q.db.Query(ctx, listEnvironmentComponents, arg.EnvironmentID, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []EnvironmentComponent
+	for rows.Next() {
+		var i EnvironmentComponent
+		if err := rows.Scan(
+			&i.ID,
+			&i.EnvironmentID,
+			&i.Name,
+			&i.ChartName,
+			&i.ChartVersion,
+			&i.ChartRegistry,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listEnvironments = `-- name: ListEnvironments :many

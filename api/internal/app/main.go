@@ -15,5 +15,7 @@ type environmentsRepository interface {
 
 type environmentComponentsRepository interface {
 	ByEnvironmentAndName(environmentID uuid.UUID, name string) (*common.EnvironmentComponent, error)
+	CountByEnvironment(environmentID uuid.UUID) (int, error)
+	ListByEnvironment(environmentID uuid.UUID, limit, offset int) ([]*common.EnvironmentComponent, error)
 	Save(c *common.EnvironmentComponent) error
 }

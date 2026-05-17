@@ -47,6 +47,52 @@ func (r *EnvironmentComponentsRepository) ByEnvironmentAndName(environmentID uui
 	}, nil
 }
 
+func (r *EnvironmentComponentsRepository) CountByEnvironment(environmentID uuid.UUID) (int, error) {
+	conn := db.New(r.pool)
+
+	count, err := conn.CountEnvironmentComponents(context.Background(), pgtype.UUID{
+		Bytes: [16]byte(environmentID[:]),
+		Valid: true,
+	})
+	if err != nil {
+		r.l.Error("failed to count environment components", "error", err)
+		return 0, err
+	}
+
+	return int(count), nil
+}
+
+func (r *EnvironmentComponentsRepository) ListByEnvironment(environmentID uuid.UUID, limit, offset int) ([]*common.EnvironmentComponent, error) {
+	conn := db.New(r.pool)
+
+	rows, err := conn.ListEnvironmentComponents(context.Background(), db.ListEnvironmentComponentsParams{
+		EnvironmentID: pgtype.UUID{
+			Bytes: [16]byte(environmentID[:]),
+			Valid: true,
+		},
+		Limit:  int32(limit),
+		Offset: int32(offset),
+	})
+	if err != nil {
+		r.l.Error("failed to list environment components", "error", err)
+		return nil, err
+	}
+
+	components := make([]*common.EnvironmentComponent, len(rows))
+	for i, row := range rows {
+		components[i] = &common.EnvironmentComponent{
+			ID:            row.ID.Bytes,
+			EnvironmentID: row.EnvironmentID.Bytes,
+			Name:          row.Name,
+			ChartName:     row.ChartName,
+			ChartVersion:  row.ChartVersion,
+			ChartRegistry: row.ChartRegistry,
+		}
+	}
+
+	return components, nil
+}
+
 func (r *EnvironmentComponentsRepository) Save(c *common.EnvironmentComponent) error {
 	conn := db.New(r.pool)
 

@@ -83,6 +83,86 @@ func (h *EnvironmentComponentsHandler) Create(dto CreateEnvironmentComponentDTO)
 	return c, h.environmentComponentsRepository.Save(c)
 }
 
+type ListEnvironmentComponentsDTO struct {
+	EnvironmentName string
+	Page            int
+	PerPage         int
+}
+
+func (dto ListEnvironmentComponentsDTO) Validate(totalPages int) error {
+	fldErrors := []common.FieldError{}
+
+	if dto.PerPage < 1 || dto.PerPage > 100 {
+		fldErrors = append(fldErrors, common.FieldError{
+			Key:   "PerPage",
+			Error: "must be between 1 and 100",
+			Value: dto.PerPage,
+		})
+	}
+
+	// Page 1 is always valid even when there are no records.
+	if dto.Page > 1 && dto.Page > totalPages {
+		fldErrors = append(fldErrors, common.FieldError{
+			Key:   "Page",
+			Error: "page is out of bounds",
+			Value: dto.Page,
+		})
+	}
+
+	if len(fldErrors) > 0 {
+		return common.ValidationError{FieldErrors: fldErrors}
+	}
+
+	return nil
+}
+
+type ListEnvironmentComponentsResult struct {
+	Components []*common.EnvironmentComponent
+	Total      int
+	TotalPages int
+	Page       int
+	PerPage    int
+}
+
+func (h *EnvironmentComponentsHandler) List(dto ListEnvironmentComponentsDTO) (*ListEnvironmentComponentsResult, error) {
+	env, err := h.environmentsRepository.ByName(dto.EnvironmentName)
+	if err != nil {
+		return nil, err
+	}
+
+	if env == nil {
+		return nil, common.ErrNotFound{}
+	}
+
+	total, err := h.environmentComponentsRepository.CountByEnvironment(env.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	totalPages := total / dto.PerPage
+	if total%dto.PerPage != 0 {
+		totalPages++
+	}
+
+	if err := dto.Validate(totalPages); err != nil {
+		return nil, err
+	}
+
+	offset := (dto.Page - 1) * dto.PerPage
+	components, err := h.environmentComponentsRepository.ListByEnvironment(env.ID, dto.PerPage, offset)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ListEnvironmentComponentsResult{
+		Components: components,
+		Total:      total,
+		TotalPages: totalPages,
+		Page:       dto.Page,
+		PerPage:    dto.PerPage,
+	}, nil
+}
+
 func NewEnvironmentComponentsHandler(
 	l *slog.Logger,
 	environmentsRepository environmentsRepository,

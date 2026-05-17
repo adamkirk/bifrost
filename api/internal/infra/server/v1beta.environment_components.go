@@ -24,6 +24,17 @@ func (c *V1BetaEnvironmentComponentsController) RegisterRoutes(v ApiVersion, api
 			"Environment Components",
 		},
 	}, ErrorHandler(c.Create, http.MethodPost))
+
+	huma.Register(api, huma.Operation{
+		OperationID:   fmt.Sprintf("%s.environments.components.list", string(v)),
+		Method:        http.MethodGet,
+		Path:          "/environments/{environment_name}/components",
+		Summary:       "List environment components",
+		DefaultStatus: http.StatusOK,
+		Tags: []string{
+			"Environment Components",
+		},
+	}, ErrorHandler(c.List, http.MethodGet))
 }
 
 func NewV1BetaEnvironmentComponentsController(environmentComponentsHandler environmentComponentsHandler) *V1BetaEnvironmentComponentsController {
@@ -59,6 +70,74 @@ func (req *V1BetaCreateEnvironmentComponentRequest) MapErrorKey(targetField stri
 	default:
 		return targetField
 	}
+}
+
+type V1BetaListEnvironmentComponentsRequest struct {
+	EnvironmentName string `path:"environment_name" minLength:"1" pattern:"^[a-zA-Z0-9-]+$" doc:"Name of the environment."`
+	Page            int    `query:"page" minimum:"1" default:"1" doc:"Page number, starting at 1."`
+	PerPage         int    `query:"per_page" minimum:"1" maximum:"100" default:"20" doc:"Number of components per page."`
+}
+
+func (req *V1BetaListEnvironmentComponentsRequest) MapErrorKey(targetField string) string {
+	switch targetField {
+	case "EnvironmentName":
+		return "path.environment_name"
+	case "Page":
+		return "query.page"
+	case "PerPage":
+		return "query.per_page"
+	default:
+		return targetField
+	}
+}
+
+type V1BetaListEnvironmentComponentsResponseBody struct {
+	Meta V1BetaListEnvironmentsMeta   `json:"meta"`
+	Data []V1BetaEnvironmentComponent `json:"data"`
+}
+
+type V1BetaListEnvironmentComponentsResponse struct {
+	Status int
+	Body   V1BetaListEnvironmentComponentsResponseBody
+}
+
+func (c *V1BetaEnvironmentComponentsController) List(ctx context.Context, req *V1BetaListEnvironmentComponentsRequest) (*V1BetaListEnvironmentComponentsResponse, error) {
+	result, err := c.environmentComponentsHandler.List(app.ListEnvironmentComponentsDTO{
+		EnvironmentName: req.EnvironmentName,
+		Page:            req.Page,
+		PerPage:         req.PerPage,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	data := make([]V1BetaEnvironmentComponent, len(result.Components))
+	for i, c := range result.Components {
+		data[i] = V1BetaEnvironmentComponent{
+			ID:            c.ID.String(),
+			EnvironmentID: c.EnvironmentID.String(),
+			Name:          c.Name,
+			ChartName:     c.ChartName,
+			ChartVersion:  c.ChartVersion,
+			ChartRegistry: c.ChartRegistry,
+		}
+	}
+
+	return &V1BetaListEnvironmentComponentsResponse{
+		Status: http.StatusOK,
+		Body: V1BetaListEnvironmentComponentsResponseBody{
+			Meta: V1BetaListEnvironmentsMeta{
+				Pagination: V1BetaPaginationMeta{
+					Total:      result.Total,
+					TotalPages: result.TotalPages,
+					Page:       result.Page,
+					PerPage:    result.PerPage,
+				},
+			},
+			Data: data,
+		},
+	}, nil
 }
 
 type V1BetaEnvironmentComponent struct {
