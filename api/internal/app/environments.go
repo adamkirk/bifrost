@@ -166,6 +166,45 @@ func (h *EnvironmentsHandler) Update(dto UpdateEnvironmentDTO) (*common.Environm
 	return env, nil
 }
 
+type DeleteEnvironmentDTO struct {
+	Name string
+}
+
+func (dto DeleteEnvironmentDTO) Validate() error {
+	fldErrors := []common.FieldError{}
+
+	if !common.IsValidEnvironmentName(dto.Name) {
+		fldErrors = append(fldErrors, common.FieldError{
+			Key:   "Name",
+			Error: "must contain alphanumeric or hyphen characters only",
+			Value: dto.Name,
+		})
+	}
+
+	if len(fldErrors) > 0 {
+		return common.ValidationError{FieldErrors: fldErrors}
+	}
+
+	return nil
+}
+
+func (h *EnvironmentsHandler) Delete(dto DeleteEnvironmentDTO) error {
+	if err := dto.Validate(); err != nil {
+		return err
+	}
+
+	env, err := h.environmentsRepository.ByName(dto.Name)
+	if err != nil {
+		return err
+	}
+
+	if env == nil {
+		return common.ErrNotFound{}
+	}
+
+	return h.environmentsRepository.Delete(env)
+}
+
 type ListEnvironmentsDTO struct {
 	Page    int
 	PerPage int

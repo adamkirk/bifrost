@@ -46,6 +46,17 @@ func (c *V1BetaEnvironmentsController) RegisterRoutes(v ApiVersion, api huma.API
 	}, ErrorHandler(c.Get, http.MethodGet))
 
 	huma.Register(api, huma.Operation{
+		OperationID:   fmt.Sprintf("%s.environments.delete", string(v)),
+		Method:        http.MethodDelete,
+		Path:          "/environments/{name}",
+		Summary:       "Delete an environment",
+		DefaultStatus: http.StatusNoContent,
+		Tags: []string{
+			"Environments",
+		},
+	}, ErrorHandler(c.Delete, http.MethodDelete))
+
+	huma.Register(api, huma.Operation{
 		OperationID:   fmt.Sprintf("%s.environments.update", string(v)),
 		Method:        http.MethodPatch,
 		Path:          "/environments/{name}",
@@ -193,6 +204,35 @@ func (c *V1BetaEnvironmentsController) Create(ctx context.Context, req *V1BetaCr
 			},
 		},
 	}, nil
+}
+
+type V1BetaDeleteEnvironmentRequest struct {
+	Name string `path:"name" minLength:"1" pattern:"^[a-zA-Z0-9-]+$" doc:"Name of the environment to delete."`
+}
+
+func (req *V1BetaDeleteEnvironmentRequest) MapErrorKey(targetField string) string {
+	switch targetField {
+	case "Name":
+		return "path.name"
+	default:
+		return targetField
+	}
+}
+
+type V1BetaDeleteEnvironmentResponse struct {
+	Status int
+}
+
+func (c *V1BetaEnvironmentsController) Delete(ctx context.Context, req *V1BetaDeleteEnvironmentRequest) (*V1BetaDeleteEnvironmentResponse, error) {
+	err := c.environmentsHandler.Delete(app.DeleteEnvironmentDTO{
+		Name: req.Name,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &V1BetaDeleteEnvironmentResponse{Status: http.StatusNoContent}, nil
 }
 
 type V1BetaUpdateEnvironmentRequestBody struct {

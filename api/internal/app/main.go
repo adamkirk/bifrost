@@ -7,4 +7,5 @@ type environmentsRepository interface {
 	List(limit, offset int) ([]*common.Environment, error)
 	Count() (int, error)
 	Save(env *common.Environment) error
+	Delete(env *common.Environment) error
 }

@@ -90,6 +90,20 @@ func (r *EnvironmentsRepository) Save(env *common.Environment) error {
 	return err
 }
 
+func (r *EnvironmentsRepository) Delete(env *common.Environment) error {
+	conn := db.New(r.pool)
+
+	err := conn.DeleteEnvironmentByID(context.Background(), pgtype.UUID{
+		Bytes: [16]byte(env.ID[:]),
+		Valid: true,
+	})
+	if err != nil {
+		r.l.Error("failed to delete environment", "error", err)
+	}
+
+	return err
+}
+
 func NewEnvironmentsRepository(l *slog.Logger, pool *pgxpool.Pool) *EnvironmentsRepository {
 	return &EnvironmentsRepository{
 		pool: pool,

@@ -15,6 +15,9 @@ OFFSET $2;
 -- name: CountEnvironments :one
 SELECT COUNT(*) FROM environments;
 
+-- name: DeleteEnvironmentByID :exec
+DELETE FROM environments WHERE id = $1;
+
 -- name: UpsertEnvironment :one
 INSERT INTO environments (id, name)
 VALUES ($1, $2)

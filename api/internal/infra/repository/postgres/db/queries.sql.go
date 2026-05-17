@@ -22,6 +22,15 @@ func (q *Queries) CountEnvironments(ctx context.Context) (int64, error) {
 	return count, err
 }
 
+const deleteEnvironmentByID = `-- name: DeleteEnvironmentByID :exec
+DELETE FROM environments WHERE id = $1
+`
+
+func (q *Queries) DeleteEnvironmentByID(ctx context.Context, id pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, deleteEnvironmentByID, id)
+	return err
+}
+
 const getEnvironmentByName = `-- name: GetEnvironmentByName :one
 SELECT
     id, name

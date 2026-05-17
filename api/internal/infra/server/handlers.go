@@ -10,4 +10,5 @@ type environmentsHandler interface {
 	Get(dto app.GetEnvironmentDTO) (*common.Environment, error)
 	List(dto app.ListEnvironmentsDTO) (*app.ListEnvironmentsResult, error)
 	Update(dto app.UpdateEnvironmentDTO) (*common.Environment, error)
+	Delete(dto app.DeleteEnvironmentDTO) error
 }
