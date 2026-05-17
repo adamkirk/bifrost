@@ -28,7 +28,7 @@ func (dto CreateEnvironmentDTO) Validate(repo environmentsRepository) error {
 		})
 	}
 
-	if !common.IsValidEnvironmentName(dto.Name) {
+	if !common.IsValidSlug(dto.Name) {
 		fldErrors = append(fldErrors, common.FieldError{
 			Key:   "Name",
 			Error: "must contain alphanumeric or hyphen characters only",
@@ -76,7 +76,7 @@ type GetEnvironmentDTO struct {
 func (dto GetEnvironmentDTO) Validate() error {
 	fldErrors := []common.FieldError{}
 
-	if !common.IsValidEnvironmentName(dto.Name) {
+	if !common.IsValidSlug(dto.Name) {
 		fldErrors = append(fldErrors, common.FieldError{
 			Key:   "Name",
 			Error: "must contain alphanumeric or hyphen characters only",
@@ -109,7 +109,7 @@ type UpdateEnvironmentDTO struct {
 func (dto UpdateEnvironmentDTO) Validate(repo environmentsRepository) error {
 	fldErrors := []common.FieldError{}
 
-	if !common.IsValidEnvironmentName(dto.Name) {
+	if !common.IsValidSlug(dto.Name) {
 		fldErrors = append(fldErrors, common.FieldError{
 			Key:   "Name",
 			Error: "must contain alphanumeric or hyphen characters only",
@@ -173,7 +173,7 @@ type DeleteEnvironmentDTO struct {
 func (dto DeleteEnvironmentDTO) Validate() error {
 	fldErrors := []common.FieldError{}
 
-	if !common.IsValidEnvironmentName(dto.Name) {
+	if !common.IsValidSlug(dto.Name) {
 		fldErrors = append(fldErrors, common.FieldError{
 			Key:   "Name",
 			Error: "must contain alphanumeric or hyphen characters only",

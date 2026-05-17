@@ -18,7 +18,7 @@ type CreateEnvironmentComponentDTO struct {
 func (dto CreateEnvironmentComponentDTO) Validate(repo environmentComponentsRepository, environmentID uuid.UUID) error {
 	fldErrors := []common.FieldError{}
 
-	if !common.IsValidEnvironmentName(dto.Name) {
+	if !common.IsValidSlug(dto.Name) {
 		fldErrors = append(fldErrors, common.FieldError{
 			Key:   "Name",
 			Error: "must contain alphanumeric or hyphen characters only",
