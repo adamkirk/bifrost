@@ -22,20 +22,23 @@ type ApiVersion string
 const ApiVersionV1Beta ApiVersion = "v1beta"
 
 type Server struct {
-	port int
-	echo *echo.Echo
-	api  huma.API
-}
-
-type healthCheckOutput struct {
-	Body struct {
-		Status string `json:"status"`
-	}
+	port             int
+	echo             *echo.Echo
+	api              huma.API
+	accessLogger     *slog.Logger
+	apiVersionGroups []ApiVersionGroup
 }
 
 type Controller interface {
 	RegisterRoutes(g huma.API)
 }
+
+type ApiVersionGroup struct {
+	Version     ApiVersion
+	Controllers []Controller
+}
+
+type ServerOpt func(s *Server)
 
 var opsWithoutBodies = []string{
 	http.MethodGet,
@@ -202,32 +205,45 @@ func setupHumaHooks(api huma.API) {
 	)
 }
 
-// TODO: controllers isn't quite right, as they're all attached to the v1beta api
-// Fine for now, and CBA to try and sort, but will need sorting when a new api version
-// exists.
-func New(port int, logger *slog.Logger, accessLogger *slog.Logger, controllers ...Controller) *Server {
-	e := echo.New()
-	e.HideBanner = true
-	e.HidePort = true
+func WithAccessLogger(l *slog.Logger) ServerOpt {
+	return func(s *Server) {
+		s.accessLogger = l
+	}
+}
 
-	apiBase := fmt.Sprintf("/api/%s", ApiVersionV1Beta)
-	api := e.Group(apiBase)
-	apiCfg := huma.DefaultConfig("Bifrost API", "v1beta1")
+func WithApiVersionGroup(g ApiVersionGroup) ServerOpt {
+	return func(s *Server) {
+		s.apiVersionGroups = append(s.apiVersionGroups, g)
+	}
+}
 
-	hg := humaecho.NewWithGroup(e, api, apiCfg)
-
-	setupHumaMiddlewares(hg)
-	setupEchoMiddlewares(e, logger, accessLogger)
-	setupHumaHooks(hg)
-
+func New(port int, logger *slog.Logger, opts ...ServerOpt) *Server {
 	s := &Server{
-		port: port,
-		echo: e,
-		api:  hg,
+		port:             port,
+		apiVersionGroups: []ApiVersionGroup{},
 	}
 
-	for _, c := range controllers {
-		c.RegisterRoutes(hg)
+	for _, o := range opts {
+		o(s)
+	}
+
+	s.echo = echo.New()
+	s.echo.HideBanner = true
+	s.echo.HidePort = true
+
+	setupEchoMiddlewares(s.echo, logger, s.accessLogger)
+
+	for _, vg := range s.apiVersionGroups {
+		g := s.echo.Group(fmt.Sprintf("/api/%s", string(vg.Version)))
+		apiCfg := huma.DefaultConfig("Bifrost API", string(vg.Version))
+		hg := humaecho.NewWithGroup(s.echo, g, apiCfg)
+
+		setupHumaMiddlewares(hg)
+		setupHumaHooks(hg)
+
+		for _, c := range vg.Controllers {
+			c.RegisterRoutes(hg)
+		}
 	}
 
 	return s

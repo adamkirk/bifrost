@@ -59,13 +59,30 @@ func waitForServer(url string, timeout time.Duration) error {
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
+
 	return fmt.Errorf("server did not become ready within %s", timeout)
 }
 
 func TestAPI(t *testing.T) {
 	port := freePort(t)
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	s := server.New(port, logger, logger, &DummyController{})
+	s := server.New(
+		port,
+		logger,
+		server.WithApiVersionGroup(server.ApiVersionGroup{
+			Version: server.ApiVersionV1Beta,
+			Controllers: []server.Controller{
+				&DummyController{},
+			},
+		}),
+		server.WithApiVersionGroup(server.ApiVersionGroup{
+			Version: "blah",
+			Controllers: []server.Controller{
+				&DummyController{},
+			},
+		}),
+	)
+
 	go s.Start() //nolint:errcheck
 
 	base := fmt.Sprintf("http://localhost:%d", port)
@@ -74,9 +91,23 @@ func TestAPI(t *testing.T) {
 	}
 
 	resp, err := http.Get(base + "/api/v1beta/healthz") //nolint:noctx
+
 	if err != nil {
 		t.Fatalf("request failed: %v", err)
 	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNoContent {
+		t.Errorf("expected status 200, got %d", resp.StatusCode)
+	}
+
+	resp, err = http.Get(base + "/api/blah/healthz") //nolint:noctx
+
+	if err != nil {
+		t.Fatalf("request failed: %v", err)
+	}
+
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusNoContent {

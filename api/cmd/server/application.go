@@ -105,8 +105,13 @@ func (a *Application) GetServer() *server.Server {
 	return server.New(
 		a.cfg.GetServerPort(),
 		a.logger.With("component", "http-server"),
-		accessLogger,
-		a.GetV1BetaControllers()...,
+		server.WithAccessLogger(accessLogger),
+		server.WithApiVersionGroup(
+			server.ApiVersionGroup{
+				Version:     server.ApiVersionV1Beta,
+				Controllers: a.GetV1BetaControllers(),
+			},
+		),
 	)
 }
 
