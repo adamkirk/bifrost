@@ -77,12 +77,49 @@ func (h *DeploymentsHandler) Create(dto CreateDeploymentDTO) (*common.Deployment
 	d := &common.Deployment{
 		ID:                     id,
 		CreatedAt:              time.Now(),
-		Status:                 common.DeploymentStatus(common.DeploymentStatusRequested),
+		Status:                 common.DeploymentStatusRequested,
 		EnvironmentID:          env.ID,
 		EnvironmentComponentID: component.ID,
 	}
 
 	return d, h.deploymentsRepository.Save(d)
+}
+
+type GetDeploymentDTO struct {
+	EnvironmentName string
+	ComponentName   string
+	DeploymentID    uuid.UUID
+}
+
+func (h *DeploymentsHandler) Get(dto GetDeploymentDTO) (*common.Deployment, error) {
+	env, err := h.environmentsRepository.ByName(dto.EnvironmentName)
+	if err != nil {
+		return nil, err
+	}
+
+	if env == nil {
+		return nil, common.ErrNotFound{Message: "the environment was not found"}
+	}
+
+	component, err := h.environmentComponentsRepository.ByEnvironmentAndName(env.ID, dto.ComponentName)
+	if err != nil {
+		return nil, err
+	}
+
+	if component == nil {
+		return nil, common.ErrNotFound{Message: "the component was not found"}
+	}
+
+	deployment, err := h.deploymentsRepository.ByID(dto.DeploymentID)
+	if err != nil {
+		return nil, err
+	}
+
+	if deployment == nil || deployment.EnvironmentComponentID != component.ID {
+		return nil, common.ErrNotFound{}
+	}
+
+	return deployment, nil
 }
 
 func NewDeploymentsHandler(

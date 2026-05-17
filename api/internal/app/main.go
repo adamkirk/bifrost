@@ -22,5 +22,6 @@ type environmentComponentsRepository interface {
 }
 
 type deploymentsRepository interface {
+	ByID(id uuid.UUID) (*common.Deployment, error)
 	Save(d *common.Deployment) error
 }

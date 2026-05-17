@@ -23,4 +23,5 @@ type environmentsHandler interface {
 
 type deploymentsHandler interface {
 	Create(dto app.CreateDeploymentDTO) (*common.Deployment, error)
+	Get(dto app.GetDeploymentDTO) (*common.Deployment, error)
 }

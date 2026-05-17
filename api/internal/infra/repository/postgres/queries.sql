@@ -52,6 +52,9 @@ ON CONFLICT (id) DO UPDATE SET
     chart_registry = EXCLUDED.chart_registry
 RETURNING *;
 
+-- name: GetDeploymentByID :one
+SELECT * FROM environment_component_deployments WHERE id = $1;
+
 -- name: UpsertDeployment :one
 INSERT INTO environment_component_deployments (id, environment_id, environment_component_id, created_at, status)
 VALUES ($1, $2, $3, $4, $5)

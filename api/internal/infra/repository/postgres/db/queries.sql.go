@@ -52,6 +52,23 @@ func (q *Queries) DeleteEnvironmentComponentByID(ctx context.Context, id pgtype.
 	return err
 }
 
+const getDeploymentByID = `-- name: GetDeploymentByID :one
+SELECT id, environment_id, environment_component_id, created_at, status FROM environment_component_deployments WHERE id = $1
+`
+
+func (q *Queries) GetDeploymentByID(ctx context.Context, id pgtype.UUID) (EnvironmentComponentDeployment, error) {
+	row := q.db.QueryRow(ctx, getDeploymentByID, id)
+	var i EnvironmentComponentDeployment
+	err := row.Scan(
+		&i.ID,
+		&i.EnvironmentID,
+		&i.EnvironmentComponentID,
+		&i.CreatedAt,
+		&i.Status,
+	)
+	return i, err
+}
+
 const getEnvironmentByName = `-- name: GetEnvironmentByName :one
 SELECT
     id, name
