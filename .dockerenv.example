@@ -19,6 +19,15 @@ BIFROST_PGADMIN_SERVERS_FILEPATH=./.local/pgadmin/config/servers.json
 BIFROST_PGADMIN_HOST=pgadmin.bifrost.test
 BIFROST_PGADMIN_PORT=80
 
+# --- traefik
+BIFROST_TRAEFIK_HOST=traefik.bifrost.test
+
+# --- api
+BIFROST_API_HOST=api.bifrost.test
+
+# --- ui
+BIFROST_UI_HOST=bifrost.test
+
 # --- migrations
 BIFROST_MIGRATIONS_DIR=./api/etc/postgres/migrations
 BIFROST_DB_MIGRATE_SCRIPT=./api/etc/postgres/migrate.sh

@@ -9,6 +9,7 @@ endif
 .PHONY: npm \
 	prepare-env \
 	up down restart dc build \
+	hosts-txeh setup-certs-mkcert \
 	setup-hooks \
 	tail-% exec-% \
 	api-tidy hook-api-fmtcheck
@@ -35,6 +36,12 @@ build:
 dc:
 	@echo "$(DC)"
 
+setup-certs-mkcert:
+	@which mkcert > /dev/null || { echo "Error: mkcert not installed. Run: brew install mkcert"; exit 1; }
+	@mkcert -install
+	@mkdir -p .local/traefik/certs
+	@cd .local/traefik/certs && mkcert "*.bifrost.test"
+
 setup-hooks:
 	git config core.hooksPath .githooks
 
@@ -58,3 +65,9 @@ api-db-wipe:
 
 hook-api-fmtcheck:
 	$(DC) exec $(TTY_FLAGS) api ./scripts/fmt_check.sh
+
+hosts-txeh:
+	txeh add 127.0.0.1 \
+		bifrost.test api.bifrost.test \
+		traefik.bifrost.test pgadmin.bifrost.test \
+		--comment "bifrost-dev"

@@ -3,3 +3,4 @@ nextversion
 released
 
 .dockerenv
+.local/traefik/certs/
