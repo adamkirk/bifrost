@@ -43,6 +43,15 @@ func (q *Queries) DeleteEnvironmentByID(ctx context.Context, id pgtype.UUID) err
 	return err
 }
 
+const deleteEnvironmentComponentByID = `-- name: DeleteEnvironmentComponentByID :exec
+DELETE FROM environment_components WHERE id = $1
+`
+
+func (q *Queries) DeleteEnvironmentComponentByID(ctx context.Context, id pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, deleteEnvironmentComponentByID, id)
+	return err
+}
+
 const getEnvironmentByName = `-- name: GetEnvironmentByName :one
 SELECT
     id, name

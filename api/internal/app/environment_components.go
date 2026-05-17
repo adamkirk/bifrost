@@ -229,6 +229,63 @@ func (h *EnvironmentComponentsHandler) Update(dto UpdateEnvironmentComponentDTO)
 	return c, h.environmentComponentsRepository.Save(c)
 }
 
+type DeleteEnvironmentComponentDTO struct {
+	EnvironmentName string
+	Name            string
+}
+
+func (dto DeleteEnvironmentComponentDTO) Validate() error {
+	fldErrors := []common.FieldError{}
+
+	if !common.IsValidSlug(dto.EnvironmentName) {
+		fldErrors = append(fldErrors, common.FieldError{
+			Key:   "EnvironmentName",
+			Error: "must contain alphanumeric or hyphen characters only",
+			Value: dto.EnvironmentName,
+		})
+	}
+
+	if !common.IsValidSlug(dto.Name) {
+		fldErrors = append(fldErrors, common.FieldError{
+			Key:   "Name",
+			Error: "must contain alphanumeric or hyphen characters only",
+			Value: dto.Name,
+		})
+	}
+
+	if len(fldErrors) > 0 {
+		return common.ValidationError{FieldErrors: fldErrors}
+	}
+
+	return nil
+}
+
+func (h *EnvironmentComponentsHandler) Delete(dto DeleteEnvironmentComponentDTO) error {
+	if err := dto.Validate(); err != nil {
+		return err
+	}
+
+	env, err := h.environmentsRepository.ByName(dto.EnvironmentName)
+	if err != nil {
+		return err
+	}
+
+	if env == nil {
+		return common.ErrNotFound{Message: "the environment was not found"}
+	}
+
+	c, err := h.environmentComponentsRepository.ByEnvironmentAndName(env.ID, dto.Name)
+	if err != nil {
+		return err
+	}
+
+	if c == nil {
+		return common.ErrNotFound{}
+	}
+
+	return h.environmentComponentsRepository.Delete(c)
+}
+
 type ListEnvironmentComponentsDTO struct {
 	EnvironmentName string
 	Page            int

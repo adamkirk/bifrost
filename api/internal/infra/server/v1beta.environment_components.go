@@ -26,6 +26,17 @@ func (c *V1BetaEnvironmentComponentsController) RegisterRoutes(v ApiVersion, api
 	}, ErrorHandler(c.Create, http.MethodPost))
 
 	huma.Register(api, huma.Operation{
+		OperationID:   fmt.Sprintf("%s.environments.components.delete", string(v)),
+		Method:        http.MethodDelete,
+		Path:          "/environments/{environment_name}/components/{name}",
+		Summary:       "Delete an environment component",
+		DefaultStatus: http.StatusNoContent,
+		Tags: []string{
+			"Environment Components",
+		},
+	}, ErrorHandler(c.Delete, http.MethodDelete))
+
+	huma.Register(api, huma.Operation{
 		OperationID:   fmt.Sprintf("%s.environments.components.update", string(v)),
 		Method:        http.MethodPatch,
 		Path:          "/environments/{environment_name}/components/{name}",
@@ -92,6 +103,39 @@ func (req *V1BetaCreateEnvironmentComponentRequest) MapErrorKey(targetField stri
 	default:
 		return targetField
 	}
+}
+
+type V1BetaDeleteEnvironmentComponentRequest struct {
+	EnvironmentName string `path:"environment_name" minLength:"1" pattern:"^[a-zA-Z0-9-]+$" doc:"Name of the environment."`
+	Name            string `path:"name" minLength:"1" pattern:"^[a-zA-Z0-9-]+$" doc:"Name of the component to delete."`
+}
+
+func (req *V1BetaDeleteEnvironmentComponentRequest) MapErrorKey(targetField string) string {
+	switch targetField {
+	case "EnvironmentName":
+		return "path.environment_name"
+	case "Name":
+		return "path.name"
+	default:
+		return targetField
+	}
+}
+
+type V1BetaDeleteEnvironmentComponentResponse struct {
+	Status int
+}
+
+func (c *V1BetaEnvironmentComponentsController) Delete(ctx context.Context, req *V1BetaDeleteEnvironmentComponentRequest) (*V1BetaDeleteEnvironmentComponentResponse, error) {
+	err := c.environmentComponentsHandler.Delete(app.DeleteEnvironmentComponentDTO{
+		EnvironmentName: req.EnvironmentName,
+		Name:            req.Name,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &V1BetaDeleteEnvironmentComponentResponse{Status: http.StatusNoContent}, nil
 }
 
 type V1BetaUpdateEnvironmentComponentRequestBody struct {

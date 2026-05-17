@@ -93,6 +93,20 @@ func (r *EnvironmentComponentsRepository) ListByEnvironment(environmentID uuid.U
 	return components, nil
 }
 
+func (r *EnvironmentComponentsRepository) Delete(c *common.EnvironmentComponent) error {
+	conn := db.New(r.pool)
+
+	err := conn.DeleteEnvironmentComponentByID(context.Background(), pgtype.UUID{
+		Bytes: [16]byte(c.ID[:]),
+		Valid: true,
+	})
+	if err != nil {
+		r.l.Error("failed to delete environment component", "error", err)
+	}
+
+	return err
+}
+
 func (r *EnvironmentComponentsRepository) Save(c *common.EnvironmentComponent) error {
 	conn := db.New(r.pool)
 

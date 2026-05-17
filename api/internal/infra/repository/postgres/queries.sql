@@ -39,6 +39,9 @@ ORDER BY name ASC
 LIMIT $2
 OFFSET $3;
 
+-- name: DeleteEnvironmentComponentByID :exec
+DELETE FROM environment_components WHERE id = $1;
+
 -- name: UpsertEnvironmentComponent :one
 INSERT INTO environment_components (id, environment_id, name, chart_name, chart_version, chart_registry)
 VALUES ($1, $2, $3, $4, $5, $6)

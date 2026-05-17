@@ -9,6 +9,7 @@ type environmentComponentsHandler interface {
 	Create(dto app.CreateEnvironmentComponentDTO) (*common.EnvironmentComponent, error)
 	Get(dto app.GetEnvironmentComponentDTO) (*common.EnvironmentComponent, error)
 	Update(dto app.UpdateEnvironmentComponentDTO) (*common.EnvironmentComponent, error)
+	Delete(dto app.DeleteEnvironmentComponentDTO) error
 	List(dto app.ListEnvironmentComponentsDTO) (*app.ListEnvironmentComponentsResult, error)
 }
 
