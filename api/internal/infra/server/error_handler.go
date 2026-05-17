@@ -9,7 +9,7 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 )
 
-func ErrorHandler[Req any, Resp any](handler func(context.Context, *Req) (*Resp, error)) func(ctx context.Context, req *Req) (*Resp, error) {
+func ErrorHandler[Req any, Resp any](handler func(context.Context, *Req) (*Resp, error), method string) func(ctx context.Context, req *Req) (*Resp, error) {
 	return func(ctx context.Context, req *Req) (*Resp, error) {
 		resp, err := handler(ctx, req)
 
@@ -23,7 +23,7 @@ func ErrorHandler[Req any, Resp any](handler func(context.Context, *Req) (*Resp,
 
 		switch e := err.(type) {
 		case common.ValidationError:
-			return resp, buildValidationError(req, e)
+			return resp, buildValidationError(req, method, e)
 
 		case common.ErrUnauthorised:
 			return resp, huma.Error401Unauthorized(e.Message)
@@ -47,17 +47,19 @@ func defaultKeyMapper(target string) string {
 	return target
 }
 
-func buildValidationError(req any, err common.ValidationError) *huma.ErrorModel {
-	errModel := &huma.ErrorModel{
-		Title:  "Unprocessable Entity",
-		Detail: "validation failed",
-		Status: http.StatusUnprocessableEntity,
-	}
-
+func buildValidationError(req any, method string, err common.ValidationError) *huma.ErrorModel {
 	var fieldMapper errorKeyMapper = defaultKeyMapper
 
 	if mapper, ok := req.(MapsErrorKeys); ok {
 		fieldMapper = mapper.MapErrorKey
+	}
+
+	var statusCode = http.StatusUnprocessableEntity
+
+	errModel := &huma.ErrorModel{
+		Title:  http.StatusText(statusCode),
+		Detail: "validation failed",
+		Status: statusCode,
 	}
 
 	for _, fldError := range err.FieldErrors {

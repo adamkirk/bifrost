@@ -26,7 +26,7 @@ func (c *V1BetaProbesController) RegisterRoutes(v ApiVersion, api huma.API) {
 			OptDisableAllDefaultResponses:   true,
 			OptDisableDefaultAuthentication: true,
 		},
-	}, ErrorHandler(c.Startup))
+	}, ErrorHandler(c.Startup, http.MethodGet))
 }
 
 func NewProbesController() *V1BetaProbesController {

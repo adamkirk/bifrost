@@ -5,7 +5,6 @@ import (
 	"log/slog"
 	"net/http"
 	"reflect"
-	"slices"
 	"strconv"
 	"strings"
 	"unicode"
@@ -71,16 +70,6 @@ func schemaNamerFor(v ApiVersion) func(reflect.Type, string) string {
 	}
 }
 
-var opsWithoutBodies = []string{
-	http.MethodGet,
-	http.MethodHead,
-	http.MethodOptions,
-	http.MethodDelete,
-
-	// Probably don't need this one, but leaving for good measure
-	http.MethodTrace,
-}
-
 func setupHumaMiddlewares(api huma.API) {
 	api.UseMiddleware(func(ctx huma.Context, next func(huma.Context)) {
 		ctx.SetHeader("X-Operation-Id", ctx.Operation().OperationID)
@@ -137,10 +126,6 @@ func setupEchoMiddlewares(e *echo.Echo, logger *slog.Logger, accessLogger *slog.
 
 func addValidationErrorResponse(op *huma.Operation) {
 	validationStatus := strconv.Itoa(http.StatusUnprocessableEntity)
-
-	if slices.Contains(opsWithoutBodies, op.Method) {
-		validationStatus = strconv.Itoa(http.StatusBadRequest)
-	}
 
 	if _, ok := op.Responses[validationStatus]; ok {
 		return

@@ -69,6 +69,38 @@ func (h *EnvironmentsHandler) Create(dto CreateEnvironmentDTO) (*common.Environm
 	return env, h.environmentsRepository.Create(env)
 }
 
+type GetEnvironmentDTO struct {
+	Name string
+}
+
+func (dto GetEnvironmentDTO) Validate() error {
+	fldErrors := []common.FieldError{}
+
+	if !common.IsValidEnvironmentName(dto.Name) {
+		fldErrors = append(fldErrors, common.FieldError{
+			Key:   "Name",
+			Error: "must contain alphanumeric or hyphen characters only",
+			Value: dto.Name,
+		})
+
+	}
+	if len(fldErrors) > 0 {
+		return common.ValidationError{
+			FieldErrors: fldErrors,
+		}
+	}
+
+	return nil
+}
+
+func (h *EnvironmentsHandler) Get(dto GetEnvironmentDTO) (*common.Environment, error) {
+	if err := dto.Validate(); err != nil {
+		return nil, err
+	}
+
+	return h.environmentsRepository.ByName(dto.Name)
+}
+
 func NewEnvironmentsHandler(l *slog.Logger, environmentsRepository environmentsRepository) *EnvironmentsHandler {
 	return &EnvironmentsHandler{
 		l:                      l,

@@ -7,4 +7,5 @@ import (
 
 type environmentsHandler interface {
 	Create(dto app.CreateEnvironmentDTO) (*common.Environment, error)
+	Get(dto app.GetEnvironmentDTO) (*common.Environment, error)
 }
