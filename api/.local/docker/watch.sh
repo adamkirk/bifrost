@@ -17,4 +17,4 @@ if [ -z "$APP_CMD" ]; then
     exit 1
 fi 
 
-air $DEBUG_OPT -build.bin ./bin/server -build.cmd "./scripts/build.sh" -build.args_bin "$APP_CMD"
+air $DEBUG_OPT -build.bin ./bin/bifrost-server -build.cmd "./scripts/build.sh" -build.args_bin "$APP_CMD"
