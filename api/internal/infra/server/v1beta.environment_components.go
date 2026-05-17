@@ -26,6 +26,17 @@ func (c *V1BetaEnvironmentComponentsController) RegisterRoutes(v ApiVersion, api
 	}, ErrorHandler(c.Create, http.MethodPost))
 
 	huma.Register(api, huma.Operation{
+		OperationID:   fmt.Sprintf("%s.environments.components.get", string(v)),
+		Method:        http.MethodGet,
+		Path:          "/environments/{environment_name}/components/{name}",
+		Summary:       "Get an environment component",
+		DefaultStatus: http.StatusOK,
+		Tags: []string{
+			"Environment Components",
+		},
+	}, ErrorHandler(c.Get, http.MethodGet))
+
+	huma.Register(api, huma.Operation{
 		OperationID:   fmt.Sprintf("%s.environments.components.list", string(v)),
 		Method:        http.MethodGet,
 		Path:          "/environments/{environment_name}/components",
@@ -70,6 +81,51 @@ func (req *V1BetaCreateEnvironmentComponentRequest) MapErrorKey(targetField stri
 	default:
 		return targetField
 	}
+}
+
+type V1BetaGetEnvironmentComponentRequest struct {
+	EnvironmentName string `path:"environment_name" minLength:"1" pattern:"^[a-zA-Z0-9-]+$" doc:"Name of the environment."`
+	Name            string `path:"name" minLength:"1" pattern:"^[a-zA-Z0-9-]+$" doc:"Name of the component."`
+}
+
+func (req *V1BetaGetEnvironmentComponentRequest) MapErrorKey(targetField string) string {
+	switch targetField {
+	case "EnvironmentName":
+		return "path.environment_name"
+	case "Name":
+		return "path.name"
+	default:
+		return targetField
+	}
+}
+
+func (c *V1BetaEnvironmentComponentsController) Get(ctx context.Context, req *V1BetaGetEnvironmentComponentRequest) (*V1BetaEnvironmentComponentResponse, error) {
+	component, err := c.environmentComponentsHandler.Get(app.GetEnvironmentComponentDTO{
+		EnvironmentName: req.EnvironmentName,
+		Name:            req.Name,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	if component == nil {
+		return nil, huma.Error404NotFound("no component with this name exists in this environment")
+	}
+
+	return &V1BetaEnvironmentComponentResponse{
+		Status: http.StatusOK,
+		Body: V1BetaEnvironmentComponentResponseBody{
+			Data: V1BetaEnvironmentComponent{
+				ID:            component.ID.String(),
+				EnvironmentID: component.EnvironmentID.String(),
+				Name:          component.Name,
+				ChartName:     component.ChartName,
+				ChartVersion:  component.ChartVersion,
+				ChartRegistry: component.ChartRegistry,
+			},
+		},
+	}, nil
 }
 
 type V1BetaListEnvironmentComponentsRequest struct {

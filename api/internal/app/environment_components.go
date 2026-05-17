@@ -83,6 +83,56 @@ func (h *EnvironmentComponentsHandler) Create(dto CreateEnvironmentComponentDTO)
 	return c, h.environmentComponentsRepository.Save(c)
 }
 
+type GetEnvironmentComponentDTO struct {
+	EnvironmentName string
+	Name            string
+}
+
+func (dto GetEnvironmentComponentDTO) Validate() error {
+	fldErrors := []common.FieldError{}
+
+	if !common.IsValidSlug(dto.EnvironmentName) {
+		fldErrors = append(fldErrors, common.FieldError{
+			Key:   "EnvironmentName",
+			Error: "must contain alphanumeric or hyphen characters only",
+			Value: dto.EnvironmentName,
+		})
+	}
+
+	if !common.IsValidSlug(dto.Name) {
+		fldErrors = append(fldErrors, common.FieldError{
+			Key:   "Name",
+			Error: "must contain alphanumeric or hyphen characters only",
+			Value: dto.Name,
+		})
+	}
+
+	if len(fldErrors) > 0 {
+		return common.ValidationError{FieldErrors: fldErrors}
+	}
+
+	return nil
+}
+
+func (h *EnvironmentComponentsHandler) Get(dto GetEnvironmentComponentDTO) (*common.EnvironmentComponent, error) {
+	if err := dto.Validate(); err != nil {
+		return nil, err
+	}
+
+	env, err := h.environmentsRepository.ByName(dto.EnvironmentName)
+	if err != nil {
+		return nil, err
+	}
+
+	if env == nil {
+		return nil, common.ErrNotFound{
+			Message: "the environment was not found",
+		}
+	}
+
+	return h.environmentComponentsRepository.ByEnvironmentAndName(env.ID, dto.Name)
+}
+
 type ListEnvironmentComponentsDTO struct {
 	EnvironmentName string
 	Page            int

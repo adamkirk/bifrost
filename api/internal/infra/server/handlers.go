@@ -7,6 +7,7 @@ import (
 
 type environmentComponentsHandler interface {
 	Create(dto app.CreateEnvironmentComponentDTO) (*common.EnvironmentComponent, error)
+	Get(dto app.GetEnvironmentComponentDTO) (*common.EnvironmentComponent, error)
 	List(dto app.ListEnvironmentComponentsDTO) (*app.ListEnvironmentComponentsResult, error)
 }
 
