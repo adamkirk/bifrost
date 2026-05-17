@@ -7,6 +7,11 @@ import (
 	"github.com/google/uuid"
 )
 
+type EnvironmentsHandler struct {
+	l                      *slog.Logger
+	environmentsRepository environmentsRepository
+}
+
 type CreateEnvironmentDTO struct {
 	Name string
 }
@@ -43,11 +48,6 @@ func (dto CreateEnvironmentDTO) Validate(repo environmentsRepository) error {
 	}
 
 	return nil
-}
-
-type EnvironmentsHandler struct {
-	l                      *slog.Logger
-	environmentsRepository environmentsRepository
 }
 
 func (h *EnvironmentsHandler) Create(dto CreateEnvironmentDTO) (*common.Environment, error) {
