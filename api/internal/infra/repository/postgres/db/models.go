@@ -14,3 +14,18 @@ type Environment struct {
 	// Preferred name to display when referencing this user, free text could be a real name, partial name, nickname etc.
 	Name string
 }
+
+type EnvironmentComponent struct {
+	// Primary key and unique ID for a component in the system.
+	ID pgtype.UUID
+	// The environment this component belongs to.
+	EnvironmentID pgtype.UUID
+	// Name of the component, unique within an environment.
+	Name string
+	// Name of the Helm chart.
+	ChartName string
+	// Version of the Helm chart.
+	ChartVersion string
+	// Registry where the Helm chart is hosted.
+	ChartRegistry string
+}

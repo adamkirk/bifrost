@@ -26,9 +26,11 @@ type Application struct {
 	logger *slog.Logger
 	cfg    *config.Config
 
-	pgPool                 *pgxpool.Pool
-	environmentsRepository *postgres.EnvironmentsRepository
-	environmentsHandler    *app.EnvironmentsHandler
+	pgPool                          *pgxpool.Pool
+	environmentsRepository          *postgres.EnvironmentsRepository
+	environmentsHandler             *app.EnvironmentsHandler
+	environmentComponentsRepository *postgres.EnvironmentComponentsRepository
+	environmentComponentsHandler    *app.EnvironmentComponentsHandler
 }
 
 func bindEnvs(v *viper.Viper, prefix string, t reflect.Type) {
@@ -126,6 +128,9 @@ func (a *Application) GetV1BetaControllers() []server.Controller {
 		server.NewV1BetaEnvironmentsController(
 			a.GetEnvironmentsHandler(),
 		),
+		server.NewV1BetaEnvironmentComponentsController(
+			a.GetEnvironmentComponentsHandler(),
+		),
 	}
 }
 
@@ -168,6 +173,30 @@ func (a *Application) GetEnvironmentsRepository() *postgres.EnvironmentsReposito
 	a.environmentsRepository = postgres.NewEnvironmentsRepository(a.logger, a.GetPostgresPool())
 
 	return a.environmentsRepository
+}
+
+func (a *Application) GetEnvironmentComponentsRepository() *postgres.EnvironmentComponentsRepository {
+	if a.environmentComponentsRepository != nil {
+		return a.environmentComponentsRepository
+	}
+
+	a.environmentComponentsRepository = postgres.NewEnvironmentComponentsRepository(a.logger, a.GetPostgresPool())
+
+	return a.environmentComponentsRepository
+}
+
+func (a *Application) GetEnvironmentComponentsHandler() *app.EnvironmentComponentsHandler {
+	if a.environmentComponentsHandler != nil {
+		return a.environmentComponentsHandler
+	}
+
+	a.environmentComponentsHandler = app.NewEnvironmentComponentsHandler(
+		a.logger,
+		a.GetEnvironmentsRepository(),
+		a.GetEnvironmentComponentsRepository(),
+	)
+
+	return a.environmentComponentsHandler
 }
 
 func (a *Application) GetEnvironmentsHandler() *app.EnvironmentsHandler {

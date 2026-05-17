@@ -13,6 +13,15 @@ type Environment struct {
 	Name string
 }
 
+type EnvironmentComponent struct {
+	ID            uuid.UUID
+	EnvironmentID uuid.UUID
+	Name          string
+	ChartName     string
+	ChartVersion  string
+	ChartRegistry string
+}
+
 func IsValidEnvironmentName(name string) bool {
 	return environmentNameRegex.MatchString(name)
 }

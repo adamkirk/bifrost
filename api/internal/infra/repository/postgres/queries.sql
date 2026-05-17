@@ -23,3 +23,17 @@ INSERT INTO environments (id, name)
 VALUES ($1, $2)
 ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name
 RETURNING *;
+
+-- name: GetEnvironmentComponentByEnvironmentAndName :one
+SELECT * FROM environment_components
+WHERE environment_id = $1 AND name = $2;
+
+-- name: UpsertEnvironmentComponent :one
+INSERT INTO environment_components (id, environment_id, name, chart_name, chart_version, chart_registry)
+VALUES ($1, $2, $3, $4, $5, $6)
+ON CONFLICT (id) DO UPDATE SET
+    name = EXCLUDED.name,
+    chart_name = EXCLUDED.chart_name,
+    chart_version = EXCLUDED.chart_version,
+    chart_registry = EXCLUDED.chart_registry
+RETURNING *;

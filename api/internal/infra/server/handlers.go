@@ -5,6 +5,10 @@ import (
 	"github.com/adamkirk/bifrost/api/internal/common"
 )
 
+type environmentComponentsHandler interface {
+	Create(dto app.CreateEnvironmentComponentDTO) (*common.EnvironmentComponent, error)
+}
+
 type environmentsHandler interface {
 	Create(dto app.CreateEnvironmentDTO) (*common.Environment, error)
 	Get(dto app.GetEnvironmentDTO) (*common.Environment, error)

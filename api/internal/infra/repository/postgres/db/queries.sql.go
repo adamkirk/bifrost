@@ -46,6 +46,30 @@ func (q *Queries) GetEnvironmentByName(ctx context.Context, name string) (Enviro
 	return i, err
 }
 
+const getEnvironmentComponentByEnvironmentAndName = `-- name: GetEnvironmentComponentByEnvironmentAndName :one
+SELECT id, environment_id, name, chart_name, chart_version, chart_registry FROM environment_components
+WHERE environment_id = $1 AND name = $2
+`
+
+type GetEnvironmentComponentByEnvironmentAndNameParams struct {
+	EnvironmentID pgtype.UUID
+	Name          string
+}
+
+func (q *Queries) GetEnvironmentComponentByEnvironmentAndName(ctx context.Context, arg GetEnvironmentComponentByEnvironmentAndNameParams) (EnvironmentComponent, error) {
+	row := q.db.QueryRow(ctx, getEnvironmentComponentByEnvironmentAndName, arg.EnvironmentID, arg.Name)
+	var i EnvironmentComponent
+	err := row.Scan(
+		&i.ID,
+		&i.EnvironmentID,
+		&i.Name,
+		&i.ChartName,
+		&i.ChartVersion,
+		&i.ChartRegistry,
+	)
+	return i, err
+}
+
 const listEnvironments = `-- name: ListEnvironments :many
 SELECT id, name
 FROM environments
@@ -95,5 +119,46 @@ func (q *Queries) UpsertEnvironment(ctx context.Context, arg UpsertEnvironmentPa
 	row := q.db.QueryRow(ctx, upsertEnvironment, arg.ID, arg.Name)
 	var i Environment
 	err := row.Scan(&i.ID, &i.Name)
+	return i, err
+}
+
+const upsertEnvironmentComponent = `-- name: UpsertEnvironmentComponent :one
+INSERT INTO environment_components (id, environment_id, name, chart_name, chart_version, chart_registry)
+VALUES ($1, $2, $3, $4, $5, $6)
+ON CONFLICT (id) DO UPDATE SET
+    name = EXCLUDED.name,
+    chart_name = EXCLUDED.chart_name,
+    chart_version = EXCLUDED.chart_version,
+    chart_registry = EXCLUDED.chart_registry
+RETURNING id, environment_id, name, chart_name, chart_version, chart_registry
+`
+
+type UpsertEnvironmentComponentParams struct {
+	ID            pgtype.UUID
+	EnvironmentID pgtype.UUID
+	Name          string
+	ChartName     string
+	ChartVersion  string
+	ChartRegistry string
+}
+
+func (q *Queries) UpsertEnvironmentComponent(ctx context.Context, arg UpsertEnvironmentComponentParams) (EnvironmentComponent, error) {
+	row := q.db.QueryRow(ctx, upsertEnvironmentComponent,
+		arg.ID,
+		arg.EnvironmentID,
+		arg.Name,
+		arg.ChartName,
+		arg.ChartVersion,
+		arg.ChartRegistry,
+	)
+	var i EnvironmentComponent
+	err := row.Scan(
+		&i.ID,
+		&i.EnvironmentID,
+		&i.Name,
+		&i.ChartName,
+		&i.ChartVersion,
+		&i.ChartRegistry,
+	)
 	return i, err
 }
