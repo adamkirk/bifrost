@@ -133,6 +133,102 @@ func (h *EnvironmentComponentsHandler) Get(dto GetEnvironmentComponentDTO) (*com
 	return h.environmentComponentsRepository.ByEnvironmentAndName(env.ID, dto.Name)
 }
 
+type UpdateEnvironmentComponentDTO struct {
+	EnvironmentName string
+	CurrentName     string
+	Name            *string
+	ChartName       *string
+	ChartVersion    *string
+	ChartRegistry   *string
+}
+
+func (dto UpdateEnvironmentComponentDTO) Validate(repo environmentComponentsRepository, environmentID uuid.UUID) error {
+	if dto.Name == nil && dto.ChartName == nil && dto.ChartVersion == nil && dto.ChartRegistry == nil {
+		return common.ValidationError{
+			FieldErrors: []common.FieldError{
+				{
+					Key:   "Body",
+					Error: "at least one field must be provided",
+				},
+			},
+		}
+	}
+
+	fldErrors := []common.FieldError{}
+
+	if dto.Name != nil {
+		if !common.IsValidSlug(*dto.Name) {
+			fldErrors = append(fldErrors, common.FieldError{
+				Key:   "Name",
+				Error: "must contain alphanumeric or hyphen characters only",
+				Value: *dto.Name,
+			})
+		} else {
+			existing, err := repo.ByEnvironmentAndName(environmentID, *dto.Name)
+			if err != nil {
+				return err
+			}
+
+			if existing != nil {
+				msg := "a component with this name already exists in this environment"
+				if *dto.Name == dto.CurrentName {
+					msg = "the names are the same"
+				}
+				fldErrors = append(fldErrors, common.FieldError{
+					Key:   "Name",
+					Error: msg,
+					Value: *dto.Name,
+				})
+			}
+		}
+	}
+
+	if len(fldErrors) > 0 {
+		return common.ValidationError{FieldErrors: fldErrors}
+	}
+
+	return nil
+}
+
+func (h *EnvironmentComponentsHandler) Update(dto UpdateEnvironmentComponentDTO) (*common.EnvironmentComponent, error) {
+	env, err := h.environmentsRepository.ByName(dto.EnvironmentName)
+	if err != nil {
+		return nil, err
+	}
+
+	if env == nil {
+		return nil, common.ErrNotFound{Message: "the environment was not found"}
+	}
+
+	c, err := h.environmentComponentsRepository.ByEnvironmentAndName(env.ID, dto.CurrentName)
+	if err != nil {
+		return nil, err
+	}
+
+	if c == nil {
+		return nil, common.ErrNotFound{}
+	}
+
+	if err := dto.Validate(h.environmentComponentsRepository, env.ID); err != nil {
+		return nil, err
+	}
+
+	if dto.Name != nil {
+		c.Name = *dto.Name
+	}
+	if dto.ChartName != nil {
+		c.ChartName = *dto.ChartName
+	}
+	if dto.ChartVersion != nil {
+		c.ChartVersion = *dto.ChartVersion
+	}
+	if dto.ChartRegistry != nil {
+		c.ChartRegistry = *dto.ChartRegistry
+	}
+
+	return c, h.environmentComponentsRepository.Save(c)
+}
+
 type ListEnvironmentComponentsDTO struct {
 	EnvironmentName string
 	Page            int

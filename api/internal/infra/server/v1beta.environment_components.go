@@ -26,6 +26,17 @@ func (c *V1BetaEnvironmentComponentsController) RegisterRoutes(v ApiVersion, api
 	}, ErrorHandler(c.Create, http.MethodPost))
 
 	huma.Register(api, huma.Operation{
+		OperationID:   fmt.Sprintf("%s.environments.components.update", string(v)),
+		Method:        http.MethodPatch,
+		Path:          "/environments/{environment_name}/components/{name}",
+		Summary:       "Update an environment component",
+		DefaultStatus: http.StatusOK,
+		Tags: []string{
+			"Environment Components",
+		},
+	}, ErrorHandler(c.Update, http.MethodPatch))
+
+	huma.Register(api, huma.Operation{
 		OperationID:   fmt.Sprintf("%s.environments.components.get", string(v)),
 		Method:        http.MethodGet,
 		Path:          "/environments/{environment_name}/components/{name}",
@@ -81,6 +92,69 @@ func (req *V1BetaCreateEnvironmentComponentRequest) MapErrorKey(targetField stri
 	default:
 		return targetField
 	}
+}
+
+type V1BetaUpdateEnvironmentComponentRequestBody struct {
+	Name          *string `json:"name,omitempty" minLength:"1" pattern:"^[a-zA-Z0-9-]+$" doc:"New name for the component."`
+	ChartName     *string `json:"chart_name,omitempty" minLength:"1" doc:"Name of the Helm chart."`
+	ChartVersion  *string `json:"chart_version,omitempty" minLength:"1" doc:"Version of the Helm chart."`
+	ChartRegistry *string `json:"chart_registry,omitempty" minLength:"1" doc:"Registry where the Helm chart is hosted."`
+}
+
+type V1BetaUpdateEnvironmentComponentRequest struct {
+	EnvironmentName string `path:"environment_name" minLength:"1" pattern:"^[a-zA-Z0-9-]+$" doc:"Name of the environment."`
+	Name            string `path:"name" minLength:"1" pattern:"^[a-zA-Z0-9-]+$" doc:"Current name of the component."`
+	Body            V1BetaUpdateEnvironmentComponentRequestBody
+}
+
+func (req *V1BetaUpdateEnvironmentComponentRequest) MapErrorKey(targetField string) string {
+	switch targetField {
+	case "EnvironmentName":
+		return "path.environment_name"
+	case "CurrentName":
+		return "path.name"
+	case "Name":
+		return "body.name"
+	case "ChartName":
+		return "body.chart_name"
+	case "ChartVersion":
+		return "body.chart_version"
+	case "ChartRegistry":
+		return "body.chart_registry"
+	case "Body":
+		return "body"
+	default:
+		return targetField
+	}
+}
+
+func (c *V1BetaEnvironmentComponentsController) Update(ctx context.Context, req *V1BetaUpdateEnvironmentComponentRequest) (*V1BetaEnvironmentComponentResponse, error) {
+	component, err := c.environmentComponentsHandler.Update(app.UpdateEnvironmentComponentDTO{
+		EnvironmentName: req.EnvironmentName,
+		CurrentName:     req.Name,
+		Name:            req.Body.Name,
+		ChartName:       req.Body.ChartName,
+		ChartVersion:    req.Body.ChartVersion,
+		ChartRegistry:   req.Body.ChartRegistry,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &V1BetaEnvironmentComponentResponse{
+		Status: http.StatusOK,
+		Body: V1BetaEnvironmentComponentResponseBody{
+			Data: V1BetaEnvironmentComponent{
+				ID:            component.ID.String(),
+				EnvironmentID: component.EnvironmentID.String(),
+				Name:          component.Name,
+				ChartName:     component.ChartName,
+				ChartVersion:  component.ChartVersion,
+				ChartRegistry: component.ChartRegistry,
+			},
+		},
+	}, nil
 }
 
 type V1BetaGetEnvironmentComponentRequest struct {
