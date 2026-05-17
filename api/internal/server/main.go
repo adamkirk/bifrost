@@ -4,8 +4,11 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"reflect"
 	"slices"
 	"strconv"
+	"strings"
+	"unicode"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/adapters/humaecho"
@@ -39,6 +42,34 @@ type ApiVersionGroup struct {
 }
 
 type ServerOpt func(s *Server)
+
+// versionToSchemaPrefix converts an ApiVersion like "v1beta" to a Go type
+// prefix like "V1Beta" so it can be stripped from generated schema names.
+// Spat out by claude, not a huge fan, but it seems to work for now...
+func versionToSchemaPrefix(v ApiVersion) string {
+	s := string(v)
+	var b strings.Builder
+	prevWasDigit := false
+	for i, r := range s {
+		switch {
+		case i == 0:
+			b.WriteRune(unicode.ToUpper(r))
+		case prevWasDigit && unicode.IsLetter(r):
+			b.WriteRune(unicode.ToUpper(r))
+		default:
+			b.WriteRune(r)
+		}
+		prevWasDigit = unicode.IsDigit(r)
+	}
+	return b.String()
+}
+
+func schemaNamerFor(v ApiVersion) func(reflect.Type, string) string {
+	prefix := versionToSchemaPrefix(v)
+	return func(t reflect.Type, hint string) string {
+		return strings.TrimPrefix(huma.DefaultSchemaNamer(t, hint), prefix)
+	}
+}
 
 var opsWithoutBodies = []string{
 	http.MethodGet,
@@ -237,7 +268,9 @@ func New(port int, logger *slog.Logger, opts ...ServerOpt) *Server {
 		prefix := fmt.Sprintf("/api/%s", string(vg.Version))
 		g := s.echo.Group(prefix)
 		apiCfg := huma.DefaultConfig("Bifrost API", string(vg.Version))
+		apiCfg.OpenAPI.Components.Schemas = huma.NewMapRegistry("#/components/schemas/", schemaNamerFor(vg.Version))
 		apiCfg.OpenAPI.Servers = []*huma.Server{{URL: prefix}}
+		apiCfg.RejectUnknownQueryParameters = true
 		hg := humaecho.NewWithGroup(s.echo, g, apiCfg)
 
 		setupHumaMiddlewares(hg)

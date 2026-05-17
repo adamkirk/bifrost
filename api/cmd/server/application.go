@@ -118,6 +118,7 @@ func (a *Application) GetServer() *server.Server {
 func (a *Application) GetV1BetaControllers() []server.Controller {
 	return []server.Controller{
 		server.NewProbesController(),
+		server.NewV1BetaEnvironmentsController(),
 	}
 }
 
