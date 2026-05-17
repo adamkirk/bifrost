@@ -1,4 +1,3 @@
-// TODO: Track down usages of thee errors and move them somewhere more appropriate
 package common
 
 type ErrUnauthorised struct {

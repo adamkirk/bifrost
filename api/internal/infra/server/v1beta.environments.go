@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/adamkirk/bifrost/api/internal/app"
 	"github.com/danielgtaylor/huma/v2"
 )
 
@@ -31,7 +32,9 @@ type V1BetaCreateEnvironmentResponse struct {
 	Body V1BetaCreateEnvironmentResponseBody
 }
 
-type V1BetaEnvironmentsController struct{}
+type V1BetaEnvironmentsController struct {
+	environmentsHandler environmentsHandler
+}
 
 func (c *V1BetaEnvironmentsController) RegisterRoutes(v ApiVersion, api huma.API) {
 	huma.Register(api, huma.Operation{
@@ -50,14 +53,26 @@ func (c *V1BetaEnvironmentsController) RegisterRoutes(v ApiVersion, api huma.API
 	}, ErrorHandler(c.Create))
 }
 
-func NewV1BetaEnvironmentsController() *V1BetaEnvironmentsController {
-	return &V1BetaEnvironmentsController{}
+func NewV1BetaEnvironmentsController(environmentsHandler environmentsHandler) *V1BetaEnvironmentsController {
+	return &V1BetaEnvironmentsController{
+		environmentsHandler: environmentsHandler,
+	}
 }
 
 func (c *V1BetaEnvironmentsController) Create(ctx context.Context, req *V1BetaCreateEnvironmentRequest) (*V1BetaCreateEnvironmentResponse, error) {
+	env, err := c.environmentsHandler.Create(app.CreateEnvironmentDTO{
+		Name: req.Body.Name,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
 	return &V1BetaCreateEnvironmentResponse{
 		Body: V1BetaCreateEnvironmentResponseBody{
-			V1BetaCreateEnvironmentRequestBody: req.Body,
+			V1BetaCreateEnvironmentRequestBody: V1BetaCreateEnvironmentRequestBody{
+				Name: env.Name,
+			},
 		},
 	}, nil
 }

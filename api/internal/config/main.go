@@ -10,9 +10,23 @@ type ServerConfig struct {
 	AccessLogsEnabled bool
 }
 
+type PostgresConfig struct {
+	Host           string
+	Username       string
+	Password       string
+	Port           uint16
+	DBName         string `mapstructure:"dbName"`
+	MaxConnections int32  `mapstructure:"maxConnections"`
+	MinConnections int32  `mapstructure:"minConnections"`
+	SSLMode        string `mapstructure:"sslMode"`
+}
+type DBConfig struct {
+	Postgres PostgresConfig
+}
 type Config struct {
 	Server  ServerConfig
 	Logging LoggingConfig
+	DB      DBConfig
 }
 
 func (c *Config) GetServerPort() int {

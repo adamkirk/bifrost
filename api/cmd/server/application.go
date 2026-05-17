@@ -9,8 +9,11 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/adamkirk/bifrost/api/internal/app"
 	"github.com/adamkirk/bifrost/api/internal/config"
-	"github.com/adamkirk/bifrost/api/internal/server"
+	"github.com/adamkirk/bifrost/api/internal/infra/repository/postgres"
+	"github.com/adamkirk/bifrost/api/internal/infra/server"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -23,7 +26,9 @@ type Application struct {
 	logger *slog.Logger
 	cfg    *config.Config
 
-	server *server.Server
+	pgPool                 *pgxpool.Pool
+	environmentsRepository *postgres.EnvironmentsRepository
+	environmentsHandler    *app.EnvironmentsHandler
 }
 
 func bindEnvs(v *viper.Viper, prefix string, t reflect.Type) {
@@ -118,8 +123,61 @@ func (a *Application) GetServer() *server.Server {
 func (a *Application) GetV1BetaControllers() []server.Controller {
 	return []server.Controller{
 		server.NewProbesController(),
-		server.NewV1BetaEnvironmentsController(),
+		server.NewV1BetaEnvironmentsController(
+			a.GetEnvironmentsHandler(),
+		),
 	}
+}
+
+func (a *Application) GetPostgresPool() *pgxpool.Pool {
+	if a.pgPool != nil {
+		return a.pgPool
+	}
+
+	sslMode := postgres.PostgresSSLMode(a.cfg.DB.Postgres.SSLMode)
+
+	if !postgres.ISValidSSLMode(sslMode) {
+		cobra.CheckErr(fmt.Errorf("invalid ssl mode for postgres: %s", string(sslMode)))
+	}
+
+	p, err := postgres.NewPool(
+		postgres.PoolConfig{
+			Host:           a.cfg.DB.Postgres.Host,
+			Username:       a.cfg.DB.Postgres.Username,
+			Password:       a.cfg.DB.Postgres.Password,
+			Port:           a.cfg.DB.Postgres.Port,
+			DBName:         a.cfg.DB.Postgres.DBName,
+			MaxConnections: a.cfg.DB.Postgres.MaxConnections,
+			MinConnections: a.cfg.DB.Postgres.MinConnections,
+			SSLMode:        sslMode,
+		},
+	)
+
+	cobra.CheckErr(err)
+
+	a.pgPool = p
+
+	return a.pgPool
+}
+
+func (a *Application) GetEnvironmentsRepository() *postgres.EnvironmentsRepository {
+	if a.environmentsRepository != nil {
+		return a.environmentsRepository
+	}
+
+	a.environmentsRepository = postgres.NewEnvironmentsRepository(a.logger, a.GetPostgresPool())
+
+	return a.environmentsRepository
+}
+
+func (a *Application) GetEnvironmentsHandler() *app.EnvironmentsHandler {
+	if a.environmentsHandler != nil {
+		return a.environmentsHandler
+	}
+
+	a.environmentsHandler = app.NewEnvironmentsHandler(a.logger, a.GetEnvironmentsRepository())
+
+	return a.environmentsHandler
 }
 
 func NewApplication(cmd *cobra.Command) (*Application, error) {
