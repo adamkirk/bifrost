@@ -51,3 +51,9 @@ ON CONFLICT (id) DO UPDATE SET
     chart_version = EXCLUDED.chart_version,
     chart_registry = EXCLUDED.chart_registry
 RETURNING *;
+
+-- name: UpsertDeployment :one
+INSERT INTO environment_component_deployments (id, environment_id, environment_component_id, created_at, status)
+VALUES ($1, $2, $3, $4, $5)
+ON CONFLICT (id) DO UPDATE SET status = EXCLUDED.status
+RETURNING *;

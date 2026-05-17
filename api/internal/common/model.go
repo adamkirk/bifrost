@@ -2,6 +2,7 @@ package common
 
 import (
 	"regexp"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -24,4 +25,20 @@ type EnvironmentComponent struct {
 
 func IsValidSlug(name string) bool {
 	return slugRegex.MatchString(name)
+}
+
+type DeploymentStatus string
+
+const DeploymentStatusRequested = "requested"
+const DeploymentStatusPending = "pending"
+const DeploymentStatusRunning = "running"
+const DeploymentStatusCompleted = "completed"
+const DeploymentStatusFailed = "failed"
+
+type Deployment struct {
+	ID                     uuid.UUID
+	CreatedAt              time.Time
+	Status                 DeploymentStatus
+	EnvironmentID          uuid.UUID
+	EnvironmentComponentID uuid.UUID
 }

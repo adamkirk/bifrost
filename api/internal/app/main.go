@@ -20,3 +20,7 @@ type environmentComponentsRepository interface {
 	Save(c *common.EnvironmentComponent) error
 	Delete(c *common.EnvironmentComponent) error
 }
+
+type deploymentsRepository interface {
+	Save(d *common.Deployment) error
+}

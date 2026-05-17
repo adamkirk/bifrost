@@ -1,5 +1,11 @@
 # Bifrost API — Claude Skills
 
+## Meta — keeping this file up to date
+
+Whenever the user points out something that was missed, wrong, or should be done differently, **immediately update this file** with the correct guidance so it won't happen again. Don't wait to be asked.
+
+All project-specific guidance belongs here, not in external memory files outside the repo. Prefer updating this file over writing to `~/.claude/` so the knowledge is shared with all contributors.
+
 ## Stack
 
 - **Language**: Go
@@ -86,7 +92,9 @@ Create `internal/app/<resource>.go` with:
 - Handler methods that follow: **load → validate → mutate → save**
 
 **DTO Validate conventions:**
+- Every DTO **must** have a `Validate` method — never omit it
 - Takes the repository as an argument when a DB lookup is needed, otherwise no args
+- Call `dto.Validate(...)` at the top of the handler method, before any DB lookups
 - Collects all field errors before returning (don't short-circuit)
 - Skip DB uniqueness check if format is already invalid (use `else` branch)
 - Returns `common.ValidationError{FieldErrors: ...}`
@@ -154,6 +162,12 @@ List endpoints use page-based pagination (not offset/limit in the API):
 
 ## Make targets
 
+The `Makefile` is at the **repo root** (`/bifrost/Makefile`), not inside `api/`. Always run `make` from the repo root — running from `api/` produces "no rule to make target" errors.
+
 | Target | Description |
 |---|---|
 | `make api-sqlc-gen` | Regenerate sqlc db package from `queries.sql` |
+
+## Building / compilation
+
+Do **not** run `go build` (or `go vet`, etc.) to verify compilation. A Docker watcher is always running and recompiles on file changes. The user will explicitly report any compilation errors — skip any build verification step after editing Go files.

@@ -165,6 +165,40 @@ func (q *Queries) ListEnvironments(ctx context.Context, arg ListEnvironmentsPara
 	return items, nil
 }
 
+const upsertDeployment = `-- name: UpsertDeployment :one
+INSERT INTO environment_component_deployments (id, environment_id, environment_component_id, created_at, status)
+VALUES ($1, $2, $3, $4, $5)
+ON CONFLICT (id) DO UPDATE SET status = EXCLUDED.status
+RETURNING id, environment_id, environment_component_id, created_at, status
+`
+
+type UpsertDeploymentParams struct {
+	ID                     pgtype.UUID
+	EnvironmentID          pgtype.UUID
+	EnvironmentComponentID pgtype.UUID
+	CreatedAt              pgtype.Timestamptz
+	Status                 string
+}
+
+func (q *Queries) UpsertDeployment(ctx context.Context, arg UpsertDeploymentParams) (EnvironmentComponentDeployment, error) {
+	row := q.db.QueryRow(ctx, upsertDeployment,
+		arg.ID,
+		arg.EnvironmentID,
+		arg.EnvironmentComponentID,
+		arg.CreatedAt,
+		arg.Status,
+	)
+	var i EnvironmentComponentDeployment
+	err := row.Scan(
+		&i.ID,
+		&i.EnvironmentID,
+		&i.EnvironmentComponentID,
+		&i.CreatedAt,
+		&i.Status,
+	)
+	return i, err
+}
+
 const upsertEnvironment = `-- name: UpsertEnvironment :one
 INSERT INTO environments (id, name)
 VALUES ($1, $2)

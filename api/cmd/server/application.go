@@ -31,6 +31,8 @@ type Application struct {
 	environmentsHandler             *app.EnvironmentsHandler
 	environmentComponentsRepository *postgres.EnvironmentComponentsRepository
 	environmentComponentsHandler    *app.EnvironmentComponentsHandler
+	deploymentsRepository           *postgres.DeploymentsRepository
+	deploymentsHandler              *app.DeploymentsHandler
 }
 
 func bindEnvs(v *viper.Viper, prefix string, t reflect.Type) {
@@ -131,6 +133,9 @@ func (a *Application) GetV1BetaControllers() []server.Controller {
 		server.NewV1BetaEnvironmentComponentsController(
 			a.GetEnvironmentComponentsHandler(),
 		),
+		server.NewV1BetaEnvironmentComponentDeploymentsController(
+			a.GetDeploymentsHandler(),
+		),
 	}
 }
 
@@ -197,6 +202,31 @@ func (a *Application) GetEnvironmentComponentsHandler() *app.EnvironmentComponen
 	)
 
 	return a.environmentComponentsHandler
+}
+
+func (a *Application) GetDeploymentsRepository() *postgres.DeploymentsRepository {
+	if a.deploymentsRepository != nil {
+		return a.deploymentsRepository
+	}
+
+	a.deploymentsRepository = postgres.NewDeploymentsRepository(a.logger, a.GetPostgresPool())
+
+	return a.deploymentsRepository
+}
+
+func (a *Application) GetDeploymentsHandler() *app.DeploymentsHandler {
+	if a.deploymentsHandler != nil {
+		return a.deploymentsHandler
+	}
+
+	a.deploymentsHandler = app.NewDeploymentsHandler(
+		a.logger,
+		a.GetEnvironmentsRepository(),
+		a.GetEnvironmentComponentsRepository(),
+		a.GetDeploymentsRepository(),
+	)
+
+	return a.deploymentsHandler
 }
 
 func (a *Application) GetEnvironmentsHandler() *app.EnvironmentsHandler {

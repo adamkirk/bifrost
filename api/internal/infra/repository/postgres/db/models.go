@@ -29,3 +29,16 @@ type EnvironmentComponent struct {
 	// Registry where the Helm chart is hosted.
 	ChartRegistry string
 }
+
+type EnvironmentComponentDeployment struct {
+	// Primary key and unique ID for a deployment in the system.
+	ID pgtype.UUID
+	// The environment that this deploy was part of.
+	EnvironmentID pgtype.UUID
+	// The environment component that was deployed.
+	EnvironmentComponentID pgtype.UUID
+	// When the deployment was created.
+	CreatedAt pgtype.Timestamptz
+	// The status of the deployment.
+	Status string
+}

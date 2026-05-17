@@ -20,3 +20,7 @@ type environmentsHandler interface {
 	Update(dto app.UpdateEnvironmentDTO) (*common.Environment, error)
 	Delete(dto app.DeleteEnvironmentDTO) error
 }
+
+type deploymentsHandler interface {
+	Create(dto app.CreateDeploymentDTO) (*common.Deployment, error)
+}
