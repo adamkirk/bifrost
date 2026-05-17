@@ -1,7 +1,7 @@
 package server_test
 
 import (
-	"encoding/json"
+	"context"
 	"fmt"
 	"io"
 	"log/slog"
@@ -11,7 +11,32 @@ import (
 	"time"
 
 	"github.com/adamkirk/bifrost/api/internal/server"
+	"github.com/danielgtaylor/huma/v2"
 )
+
+type DummyController struct{}
+
+func (c *DummyController) RegisterRoutes(api huma.API) {
+	huma.Register(api, huma.Operation{
+		OperationID:   "dummy.healthz",
+		Method:        http.MethodGet,
+		Path:          "/healthz",
+		Summary:       "Check if the app is started up",
+		DefaultStatus: http.StatusNoContent,
+		Tags: []string{
+			"Healthz",
+		},
+		Metadata: map[string]any{},
+	}, c.Healthz)
+}
+
+type HealthzRequest struct{}
+
+func (c *DummyController) Healthz(ctx context.Context, req *HealthzRequest) (*server.NoContent, error) {
+	return &server.NoContent{
+		Status: http.StatusNoContent,
+	}, nil
+}
 
 func freePort(t *testing.T) int {
 	t.Helper()
@@ -37,34 +62,24 @@ func waitForServer(url string, timeout time.Duration) error {
 	return fmt.Errorf("server did not become ready within %s", timeout)
 }
 
-func TestHealthcheck(t *testing.T) {
+func TestAPI(t *testing.T) {
 	port := freePort(t)
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	s := server.New(port, logger, logger)
+	s := server.New(port, logger, logger, &DummyController{})
 	go s.Start() //nolint:errcheck
 
 	base := fmt.Sprintf("http://localhost:%d", port)
-	if err := waitForServer(base+"/_/healthz", 2*time.Second); err != nil {
+	if err := waitForServer(base+"/api/v1beta/healthz", 2*time.Second); err != nil {
 		t.Fatal(err)
 	}
 
-	resp, err := http.Get(base + "/_/healthz") //nolint:noctx
+	resp, err := http.Get(base + "/api/v1beta/healthz") //nolint:noctx
 	if err != nil {
 		t.Fatalf("request failed: %v", err)
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode != http.StatusNoContent {
 		t.Errorf("expected status 200, got %d", resp.StatusCode)
-	}
-
-	var body struct {
-		Status string `json:"status"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
-		t.Fatalf("failed to decode response body: %v", err)
-	}
-	if body.Status != "ok" {
-		t.Errorf("expected status %q, got %q", "ok", body.Status)
 	}
 }
