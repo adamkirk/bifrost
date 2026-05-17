@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
 
 	"github.com/adamkirk/bifrost/api/internal/common"
@@ -50,7 +49,8 @@ func defaultKeyMapper(target string) string {
 
 func buildValidationError(req any, err common.ValidationError) *huma.ErrorModel {
 	errModel := &huma.ErrorModel{
-		Title:  "Invalid data",
+		Title:  "Unprocessable Entity",
+		Detail: "validation failed",
 		Status: http.StatusUnprocessableEntity,
 	}
 
@@ -61,16 +61,11 @@ func buildValidationError(req any, err common.ValidationError) *huma.ErrorModel 
 	}
 
 	for _, fldError := range err.FieldErrors {
-		for _, v := range fldError.Errors {
-			errModel.Add(&huma.ErrorDetail{
-				// TODO: Need to documentthis properly in the API
-				// Taking an arguably weird tactic of just returning a custom format
-				// for message allowing the useer to extract the violation type,
-				// and provide their own messages.
-				Message:  fmt.Sprintf("[%s]%s", string(v.Code()), v.Message()),
-				Location: fieldMapper(fldError.Key),
-			})
-		}
+		errModel.Add(&huma.ErrorDetail{
+			Message:  fldError.Error,
+			Location: fieldMapper(fldError.Key),
+			Value:    fldError.Value,
+		})
 	}
 	return errModel
 }

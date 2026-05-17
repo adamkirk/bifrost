@@ -18,20 +18,27 @@ func (dto CreateEnvironmentDTO) Validate(repo environmentsRepository) error {
 		return err
 	}
 
+	fldErrors := []common.FieldError{}
+
 	if found != nil {
+		fldErrors = append(fldErrors, common.FieldError{
+			Key:   "Name",
+			Error: "an environment with this name already exists.",
+			Value: dto.Name,
+		})
+	}
+
+	if !common.IsValidEnvironmentName(dto.Name) {
+		fldErrors = append(fldErrors, common.FieldError{
+			Key:   "Name",
+			Error: "must contain alphanumeric or hyphen characters only",
+			Value: dto.Name,
+		})
+
+	}
+	if len(fldErrors) > 0 {
 		return common.ValidationError{
-			FieldErrors: []common.FieldError{
-				{
-					Key: "Name",
-					Errors: common.Violations{
-						&common.ConflictViolation{
-							BaseViolation: common.BaseViolation{
-								Error: "an environment with this name already exists.",
-							},
-						},
-					},
-				},
-			},
+			FieldErrors: fldErrors,
 		}
 	}
 

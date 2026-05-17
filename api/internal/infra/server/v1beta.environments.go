@@ -9,15 +9,8 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 )
 
-type V1BetaChartReference struct {
-	Registry string `json:"registry" minLength:"1"`
-	Name     string `json:"name" minLength:"1"`
-	Version  string `json:"version" minLength:"1"`
-}
-
 type V1BetaCreateEnvironmentRequestBody struct {
-	Name  string               `json:"name" minLength:"1" pattern:"^[a-zA-Z0-9-]+$" doc:"Unique name for the environment. Must contain only alphanumeric characters and hyphens."`
-	Chart V1BetaChartReference `json:"chart"`
+	Name string `json:"name" minLength:"1" pattern:"^[a-zA-Z0-9-]+$" doc:"Unique name for the environment. Must contain only alphanumeric characters and hyphens."`
 }
 
 type V1BetaCreateEnvironmentRequest struct {
@@ -27,7 +20,7 @@ type V1BetaCreateEnvironmentRequest struct {
 func (req *V1BetaCreateEnvironmentRequest) MapErrorKey(targetField string) string {
 	switch targetField {
 	case "Name":
-		return "name"
+		return "body.name"
 	default:
 		return targetField
 	}
