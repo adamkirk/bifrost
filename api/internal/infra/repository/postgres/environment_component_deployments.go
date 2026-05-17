@@ -10,11 +10,13 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/riverqueue/river"
 )
 
 type DeploymentsRepository struct {
-	pool *pgxpool.Pool
-	l    *slog.Logger
+	pool        *pgxpool.Pool
+	l           *slog.Logger
+	riverClient *river.Client[pgx.Tx]
 }
 
 func (r *DeploymentsRepository) ByID(id uuid.UUID) (*common.Deployment, error) {
@@ -43,10 +45,17 @@ func (r *DeploymentsRepository) ByID(id uuid.UUID) (*common.Deployment, error) {
 	}, nil
 }
 
-func (r *DeploymentsRepository) Save(d *common.Deployment) error {
-	conn := db.New(r.pool)
+func (r *DeploymentsRepository) Save(d *common.Deployment, opts ...common.QueueJobOption) error {
+	ctx := context.Background()
 
-	_, err := conn.UpsertDeployment(context.Background(), db.UpsertDeploymentParams{
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		r.l.Error("failed to begin transaction", "error", err)
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	_, err = db.New(tx).UpsertDeployment(ctx, db.UpsertDeploymentParams{
 		ID: pgtype.UUID{
 			Bytes: [16]byte(d.ID[:]),
 			Valid: true,
@@ -65,17 +74,25 @@ func (r *DeploymentsRepository) Save(d *common.Deployment) error {
 		},
 		Status: string(d.Status),
 	})
-
 	if err != nil {
 		r.l.Error("failed to save deployment", "error", err)
+		return err
 	}
 
-	return err
+	enqueuer := &txEnqueuer{ctx: ctx, tx: tx, client: r.riverClient}
+	for _, opt := range opts {
+		if err := opt(enqueuer); err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit(ctx)
 }
 
-func NewDeploymentsRepository(l *slog.Logger, pool *pgxpool.Pool) *DeploymentsRepository {
+func NewDeploymentsRepository(l *slog.Logger, pool *pgxpool.Pool, riverClient *river.Client[pgx.Tx]) *DeploymentsRepository {
 	return &DeploymentsRepository{
-		pool: pool,
-		l:    l.With("component", "infra.postgres.deployments_repository"),
+		pool:        pool,
+		l:           l.With("component", "infra.postgres.deployments_repository"),
+		riverClient: riverClient,
 	}
 }

@@ -13,7 +13,9 @@ import (
 	"github.com/adamkirk/bifrost/api/internal/config"
 	"github.com/adamkirk/bifrost/api/internal/infra/repository/postgres"
 	"github.com/adamkirk/bifrost/api/internal/infra/server"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/riverqueue/river"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -33,6 +35,7 @@ type Application struct {
 	environmentComponentsHandler    *app.EnvironmentComponentsHandler
 	deploymentsRepository           *postgres.DeploymentsRepository
 	deploymentsHandler              *app.DeploymentsHandler
+	riverClient                     *river.Client[pgx.Tx]
 }
 
 func bindEnvs(v *viper.Viper, prefix string, t reflect.Type) {
@@ -170,12 +173,25 @@ func (a *Application) GetPostgresPool() *pgxpool.Pool {
 	return a.pgPool
 }
 
+func (a *Application) GetRiverClient() *river.Client[pgx.Tx] {
+	if a.riverClient != nil {
+		return a.riverClient
+	}
+
+	client, err := postgres.NewRiverClient(a.GetPostgresPool())
+	cobra.CheckErr(err)
+
+	a.riverClient = client
+
+	return a.riverClient
+}
+
 func (a *Application) GetEnvironmentsRepository() *postgres.EnvironmentsRepository {
 	if a.environmentsRepository != nil {
 		return a.environmentsRepository
 	}
 
-	a.environmentsRepository = postgres.NewEnvironmentsRepository(a.logger, a.GetPostgresPool())
+	a.environmentsRepository = postgres.NewEnvironmentsRepository(a.logger, a.GetPostgresPool(), a.GetRiverClient())
 
 	return a.environmentsRepository
 }
@@ -185,7 +201,7 @@ func (a *Application) GetEnvironmentComponentsRepository() *postgres.Environment
 		return a.environmentComponentsRepository
 	}
 
-	a.environmentComponentsRepository = postgres.NewEnvironmentComponentsRepository(a.logger, a.GetPostgresPool())
+	a.environmentComponentsRepository = postgres.NewEnvironmentComponentsRepository(a.logger, a.GetPostgresPool(), a.GetRiverClient())
 
 	return a.environmentComponentsRepository
 }
@@ -209,7 +225,7 @@ func (a *Application) GetDeploymentsRepository() *postgres.DeploymentsRepository
 		return a.deploymentsRepository
 	}
 
-	a.deploymentsRepository = postgres.NewDeploymentsRepository(a.logger, a.GetPostgresPool())
+	a.deploymentsRepository = postgres.NewDeploymentsRepository(a.logger, a.GetPostgresPool(), a.GetRiverClient())
 
 	return a.deploymentsRepository
 }

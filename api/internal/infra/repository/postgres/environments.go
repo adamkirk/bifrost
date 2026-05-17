@@ -9,11 +9,13 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/riverqueue/river"
 )
 
 type EnvironmentsRepository struct {
-	pool *pgxpool.Pool
-	l    *slog.Logger
+	pool        *pgxpool.Pool
+	l           *slog.Logger
+	riverClient *river.Client[pgx.Tx]
 }
 
 func (r *EnvironmentsRepository) ByName(name string) (*common.Environment, error) {
@@ -72,22 +74,36 @@ func (r *EnvironmentsRepository) List(limit, offset int) ([]*common.Environment,
 	return envs, nil
 }
 
-func (r *EnvironmentsRepository) Save(env *common.Environment) error {
-	conn := db.New(r.pool)
+func (r *EnvironmentsRepository) Save(env *common.Environment, opts ...common.QueueJobOption) error {
+	ctx := context.Background()
 
-	_, err := conn.UpsertEnvironment(context.Background(), db.UpsertEnvironmentParams{
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		r.l.Error("failed to begin transaction", "error", err)
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	_, err = db.New(tx).UpsertEnvironment(ctx, db.UpsertEnvironmentParams{
 		ID: pgtype.UUID{
 			Bytes: [16]byte(env.ID[:]),
 			Valid: true,
 		},
 		Name: env.Name,
 	})
-
 	if err != nil {
 		r.l.Error("failed to save environment", "error", err)
+		return err
 	}
 
-	return err
+	enqueuer := &txEnqueuer{ctx: ctx, tx: tx, client: r.riverClient}
+	for _, opt := range opts {
+		if err := opt(enqueuer); err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit(ctx)
 }
 
 func (r *EnvironmentsRepository) Delete(env *common.Environment) error {
@@ -104,9 +120,10 @@ func (r *EnvironmentsRepository) Delete(env *common.Environment) error {
 	return err
 }
 
-func NewEnvironmentsRepository(l *slog.Logger, pool *pgxpool.Pool) *EnvironmentsRepository {
+func NewEnvironmentsRepository(l *slog.Logger, pool *pgxpool.Pool, riverClient *river.Client[pgx.Tx]) *EnvironmentsRepository {
 	return &EnvironmentsRepository{
-		pool: pool,
-		l:    l.With("component", "infra.postgres.environments_repository"),
+		pool:        pool,
+		l:           l.With("component", "infra.postgres.environments_repository"),
+		riverClient: riverClient,
 	}
 }

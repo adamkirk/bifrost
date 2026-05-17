@@ -10,11 +10,13 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/riverqueue/river"
 )
 
 type EnvironmentComponentsRepository struct {
-	pool *pgxpool.Pool
-	l    *slog.Logger
+	pool        *pgxpool.Pool
+	l           *slog.Logger
+	riverClient *river.Client[pgx.Tx]
 }
 
 func (r *EnvironmentComponentsRepository) ByEnvironmentAndName(environmentID uuid.UUID, name string) (*common.EnvironmentComponent, error) {
@@ -107,10 +109,17 @@ func (r *EnvironmentComponentsRepository) Delete(c *common.EnvironmentComponent)
 	return err
 }
 
-func (r *EnvironmentComponentsRepository) Save(c *common.EnvironmentComponent) error {
-	conn := db.New(r.pool)
+func (r *EnvironmentComponentsRepository) Save(c *common.EnvironmentComponent, opts ...common.QueueJobOption) error {
+	ctx := context.Background()
 
-	_, err := conn.UpsertEnvironmentComponent(context.Background(), db.UpsertEnvironmentComponentParams{
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		r.l.Error("failed to begin transaction", "error", err)
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	_, err = db.New(tx).UpsertEnvironmentComponent(ctx, db.UpsertEnvironmentComponentParams{
 		ID: pgtype.UUID{
 			Bytes: [16]byte(c.ID[:]),
 			Valid: true,
@@ -124,17 +133,25 @@ func (r *EnvironmentComponentsRepository) Save(c *common.EnvironmentComponent) e
 		ChartVersion:  c.ChartVersion,
 		ChartRegistry: c.ChartRegistry,
 	})
-
 	if err != nil {
 		r.l.Error("failed to save environment component", "error", err)
+		return err
 	}
 
-	return err
+	enqueuer := &txEnqueuer{ctx: ctx, tx: tx, client: r.riverClient}
+	for _, opt := range opts {
+		if err := opt(enqueuer); err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit(ctx)
 }
 
-func NewEnvironmentComponentsRepository(l *slog.Logger, pool *pgxpool.Pool) *EnvironmentComponentsRepository {
+func NewEnvironmentComponentsRepository(l *slog.Logger, pool *pgxpool.Pool, riverClient *river.Client[pgx.Tx]) *EnvironmentComponentsRepository {
 	return &EnvironmentComponentsRepository{
-		pool: pool,
-		l:    l.With("component", "infra.postgres.environment_components_repository"),
+		pool:        pool,
+		l:           l.With("component", "infra.postgres.environment_components_repository"),
+		riverClient: riverClient,
 	}
 }

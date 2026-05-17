@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"log/slog"
 	"time"
 
@@ -82,7 +83,11 @@ func (h *DeploymentsHandler) Create(dto CreateDeploymentDTO) (*common.Deployment
 		EnvironmentComponentID: component.ID,
 	}
 
-	return d, h.deploymentsRepository.Save(d)
+	return d, h.deploymentsRepository.Save(d,
+		common.WithQueuedJob(func(q common.JobEnQueuer) error {
+			return q.Enqueue(context.Background(), RunDeploymentJob{DeploymentID: d.ID})
+		}),
+	)
 }
 
 type GetDeploymentDTO struct {
