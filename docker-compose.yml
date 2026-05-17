@@ -27,6 +27,11 @@ services:
       # Means nothing yet.
       APP_CMD: "serve"
       AIR_DEBUG: ${AIR_DEBUG:-false}
+      BIFROST_SERVER_DB_POSTGRES_HOST: postgres
+      BIFROST_SERVER_DB_POSTGRES_USERNAME: ${BIFROST_POSTGRES_APP_USER}
+      BIFROST_SERVER_DB_POSTGRES_PASSWORD: ${BIFROST_POSTGRES_APP_PASSWORD}
+      BIFROST_SERVER_DB_POSTGRES_PORT: ${BIFROST_POSTGRES_PORT}
+      BIFROST_SERVER_DB_POSTGRES_DBNAME: ${BIFROST_POSTGRES_DB}
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.api.rule=Host(`${BIFROST_API_HOST}`)"

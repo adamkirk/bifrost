@@ -63,6 +63,9 @@ api-db-migrate:
 api-db-wipe:
 	@$(DC) run $(TTY_FLAGS) migrate drop
 
+api-sqlc-gen:
+	$(DC) exec $(TTY_FLAGS) api sqlc generate
+
 hook-api-fmtcheck:
 	$(DC) exec $(TTY_FLAGS) api ./scripts/fmt_check.sh
 
